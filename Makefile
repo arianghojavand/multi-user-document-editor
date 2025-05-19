@@ -1,13 +1,27 @@
-# TODO: make sure the rules for server client and markdown filled!
+# Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra
+CFLAGS := -Wall -Wextra -Wvla -g -fsanitize=address -Werror
 
-all: server client
+# Directories
+SRC_DIR := source
+LIB_DIR := libs
 
-server: 
+# Source files
+SOURCES := $(SRC_DIR)/client.c $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
 
-client:
+# Object files (optional)
+OBJECTS := $(SOURCES:.c=.o)
 
-markdown.o:
+# Executables
+EXECUTABLES := client server
+
+all: $(EXECUTABLES)
+
+client: $(SRC_DIR)/client.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
+	$(CC) $(CFLAGS) $(SRC_DIR)/client.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o client
+
+server: $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
+	$(CC) $(CFLAGS) $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o server
 
 clean:
+	rm -f $(EXECUTABLES) $(OBJECTS)
