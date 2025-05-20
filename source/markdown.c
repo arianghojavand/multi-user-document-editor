@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stddef.h>
 
 #define SUCCESS 0 
 #define INVALID_CURSOR_POS -1

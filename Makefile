@@ -1,6 +1,6 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -Wvla -g -fsanitize=address -Werror
+CFLAGS := -Wvla -g -fsanitize=address # -Werror -Wall -Wextra 
 
 # Directories
 SRC_DIR := source

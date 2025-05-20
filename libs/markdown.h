@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "document.h"  
 #include <stdbool.h>
+#include <stddef.h>
 /**
  * The given file contains all the functions you will be required to complete. You are free to and encouraged to create
  * more helper functions to help assist you when creating the document. For the automated marking you can expect unit tests
@@ -41,7 +42,7 @@ char *markdown_flatten(const document *doc);
 void markdown_increment_version(document *doc);
 
 // === Helpers/Additional ===
-int apply_inline(document* doc, uint64_t version, size_t start, size_t end);
+int apply_inline(document* doc, uint64_t version, size_t start, size_t end, const char* style);
 bool check_blocking(document* doc, size_t pos);
 
 #endif // MARKDOWN_H

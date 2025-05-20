@@ -1,0 +1,28 @@
+# Object files
+*.o
+
+# Executables
+client
+server
+
+# Core dumps
+core
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Backup/swap files
+*~
+*.swp
+*.bak
+
+# Test outputs or temporary files
+*.out
+*.log
+
+#other
+roles.txt

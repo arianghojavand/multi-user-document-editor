@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 
 
 document* document_init(void) {
@@ -221,7 +223,7 @@ int delete(document* doc, size_t pos, size_t len) {
     return 0;
 }
 
-char* flaten(const document* doc) {
+char* flatten(const document* doc) {
     if (doc == NULL || doc->size == 0) {
         char *empty = malloc(1);
         empty[0] = '\0';
