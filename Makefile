@@ -1,43 +1,17 @@
-# Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -Werror -Wvla -g -fsanitize=address
+CFLAGS := -Wall -Wextra -pthread -Ilibs -D_GNU_SOURCE
 
-# Directories
-SRC_DIR := source
-LIB_DIR := libs
 
-# Source and object files
-SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
-LIB_FILES := $(wildcard $(LIB_DIR)/*.c)
+all: server client
 
-SRC_OBJECTS := $(SRC_FILES:.c=.o)
-LIB_OBJECTS := $(LIB_FILES:.c=.o)
+server: source/server.c source/markdown.c
+$(CC) $(CFLAGS) source/server.c source/markdown.c -o server
 
-OBJECTS := $(SRC_OBJECTS) $(LIB_OBJECTS)
+client: source/client.c source/markdown.c
+$(CC) $(CFLAGS) source/client.c source/markdown.c -o client
 
-# Executables
-EXECUTABLES := client server
-
-# Default rule
-all: $(EXECUTABLES)
-
-# Object file compilation
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Specific executables
-client: $(SRC_DIR)/client.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-server: $(SRC_DIR)/server.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
-	$(CC) $(CFLAGS) $^ -o $@
-
-# Aliases for automarker
-markdown.o: $(SRC_DIR)/markdown.o
-	cp $< $@
-
-document.o: $(LIB_DIR)/document.o
-	cp $< $@
+markdown.o: source/markdown.c
+$(CC) $(CFLAGS) -c source/markdown.c -o markdown.o
 
 clean:
-	rm -f $(EXECUTABLES) $(OBJECTS) markdown.o document.o
+rm -f server client markdown.o
