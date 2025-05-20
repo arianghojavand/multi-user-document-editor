@@ -37,5 +37,5 @@ document.o: $(LIB_DIR)/document.c
 .PHONY: all clean
 
 clean:
-	rm -f server client markdown
+	rm -f server client markdown markdown.o document.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
