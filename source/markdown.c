@@ -295,24 +295,22 @@ void markdown_increment_version(document *doc) {
 
 // int main(void) {
 //     document *doc = markdown_init();
-
-//     // Insert "World" at version 1
+//     printf("Doc version: %ld\n", doc->version);
 //     markdown_insert(doc, 1, 0, "World");
+//     char* output = markdown_flatten(doc);
 
-//     // Insert "Hello " before it at the same version
+//     printf("After first insert: %s\n", output);
+//     printf("Doc version: %ld\n", doc->version);
+
 //     markdown_insert(doc, 1, 0, "Hello ");
+//     output = markdown_flatten(doc);
 
-//     // Flatten before committing — should print nothing
-//     printf("Before version increment (should be empty): '%s'\n", markdown_flatten(doc));
+//     printf("After second insert: %s\n", output);
+//     printf("Doc version: %ld\n", doc->version);
 
-//     // Commit version 1
 //     markdown_increment_version(doc);
 
-//     // Flatten after committing — should show "Hello World"
-//     char *final_output = markdown_flatten(doc);
-//     printf("After version increment: '%s'\n", final_output);
-//     free(final_output);
-
+//     free(output);
 //     markdown_free(doc);
 //     return 0;
 // }

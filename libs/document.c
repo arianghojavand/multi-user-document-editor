@@ -15,7 +15,7 @@ document* document_init(void) {
     doc->head = NULL;
     doc->tail = NULL;
     doc->size = 0;
-    doc->version = 1;
+    doc->version = 0;
 
     return doc;
 }
@@ -174,7 +174,7 @@ int insert(document* doc, size_t pos, const char* content) {
 
     }
 
-    doc->version++;
+    //doc->version++;
     return 0;
 }
 
@@ -218,7 +218,7 @@ int delete(document* doc, size_t pos, size_t len) {
     }
 
     doc->size -= len;
-    doc->version++;
+    //doc->version++;
 
     return 0;
 }
