@@ -293,3 +293,9 @@ void markdown_increment_version(document *doc) {
    if (doc) doc->version++;
 }
 
+//temp main
+int main(void) {
+    // optional: test markdown_insert(), etc.
+    return 0;
+}
+
