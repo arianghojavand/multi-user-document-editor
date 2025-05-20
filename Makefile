@@ -1,30 +1,30 @@
-# Compiler and flags
-CC := gcc
-CFLAGS := -Wvla -g -fsanitize=address # -Werror -Wall -Wextra 
+CFLAGS := -Wall -Wextra -Werror -Wvla -g -fsanitize=address
 
 # Directories
 SRC_DIR := source
 LIB_DIR := libs
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
 # Source files
 SOURCES := $(SRC_DIR)/client.c $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
 
-# Object files (optional)
+# Object files
 OBJECTS := $(SOURCES:.c=.o)
 
 # Executables
 EXECUTABLES := client server
 
+# Pattern rule to compile .c to .o
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Default rule
 all: $(EXECUTABLES)
 
-client: $(SRC_DIR)/client.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) $(SRC_DIR)/client.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o client
+client: $(SRC_DIR)/client.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
+	$(CC) $(CFLAGS) $^ -o $@
 
-server: $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) $(SRC_DIR)/server.c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o server
+server: $(SRC_DIR)/server.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
+	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
 	rm -f $(EXECUTABLES) $(OBJECTS)
