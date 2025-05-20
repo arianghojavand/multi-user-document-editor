@@ -28,6 +28,12 @@ markdown: $(MARKDOWN_OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+markdown.o: $(SRC_DIR)/markdown.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+document.o: $(LIB_DIR)/document.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 .PHONY: all clean
 
 clean:
