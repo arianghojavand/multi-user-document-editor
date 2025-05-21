@@ -3,10 +3,10 @@
 
 #include <stdbool.h>
 #include <ctype.h>
-#include <math.h>
+
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
+
 
 #define SUCCESS 0 
 #define INVALID_CURSOR_POS -1
@@ -16,130 +16,45 @@
 #define GENERAL_FAIL -4
 
 // === Init and Free ===
-document *markdown_init(void) {
+Document *markdown_init(void) {
     return document_init();
 }
 
-void markdown_free(document *doc) {
+void markdown_free(Document *doc) {
     document_free(doc);
 }
 
 // === Edit Commands ===
-int markdown_insert(document *doc, uint64_t version, size_t pos, const char *content) {
-    if (doc->version != version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    return insert(doc, pos, content) == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_insert(Document *doc, uint64_t version, size_t pos, const char *content) {
+    return enqueue_command(doc, CMD_INSERT, pos, 0, content, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_delete(document *doc, uint64_t version, size_t pos, size_t len) {
-    if (doc->version != version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    return delete(doc, pos, len) == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_delete(Document *doc, uint64_t version, size_t pos, size_t len) {
+    return enqueue_command(doc, CMD_DELETE, pos, len, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1; 
 }
 
 // === Formatting Commands ===
-int markdown_newline(document *doc, uint64_t version, size_t pos) {
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    return insert(doc, pos, "\n") == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_newline(Document *doc, uint64_t version, size_t pos) {
+    return enqueue_command(doc, CMD_NEWLINE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-bool check_blocking(document* doc, size_t pos) {
-    bool newline_exists = false;
-    
-    chunk* prev_chunk, *next_chunk;
-    int find_pos = find_position(doc, pos, &prev_chunk, &next_chunk);
-
-    switch (find_pos) {
-        case 0:
-            newline_exists = true;
-            break;
-        case -1:
-            puts("check_blocking: failed pos");
-            return false;
-        
-        default:
-            if (prev_chunk->val == '\n') {
-                newline_exists = true;
-            }
-            break;
-    }
-
-    return newline_exists;
+int markdown_heading(Document *doc, uint64_t version, size_t level, size_t pos) {
+    return enqueue_command(doc, CMD_HEADING, pos, 0, NULL, 0, 0, level) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_heading(document *doc, uint64_t version, size_t level, size_t pos) {
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (level < 1 || level > 3) return INVALID_CURSOR_POS;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-
-    //(1) establish whether or not it is on a newline
-    bool newline_exists = check_blocking(doc, pos);
-
-    //(2) create char array to be inserted (size 10 will be more than enough)
-
-    char to_insert[10] = {0};
-    size_t i = 0;
-
-    if (!newline_exists) {
-        to_insert[i++] = '\n';
-    } 
-
-    for (size_t j = 0; j < level; j++) {
-        to_insert[i++] = '#';
-    }
-
-    to_insert[i++] = ' ';
-    to_insert[i++] = '\0';
-
-
-    return insert(doc, pos, to_insert) == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_bold(Document *doc, uint64_t version, size_t start, size_t end) {
+    return enqueue_command(doc, CMD_BOLD, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int apply_inline(document* doc, uint64_t version, size_t start, size_t end, const char* style) {
-    if (doc->version != version) return OUTDATED_VERSION;
-    if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
-
-    int insert_suffix = insert(doc, end, style);
-    int insert_prefix = insert(doc, start, style);
-
-    if (insert_prefix == -1 || insert_suffix == -1) return GENERAL_FAIL;
-
-    return SUCCESS;
+int markdown_italic(Document *doc, uint64_t version, size_t start, size_t end) {
+    return enqueue_command(doc, CMD_ITALIC, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_bold(document *doc, uint64_t version, size_t start, size_t end) {
-    return apply_inline(doc, version, start, end, "**") == SUCCESS ? SUCCESS : GENERAL_FAIL;
+int markdown_blockquote(Document *doc, uint64_t version, size_t pos) {
+    return enqueue_command(doc, CMD_QUOTE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_italic(document *doc, uint64_t version, size_t start, size_t end) {
-    return apply_inline(doc, version, start, end, "*") == SUCCESS ? SUCCESS : GENERAL_FAIL;
-}
-
-int markdown_blockquote(document *doc, uint64_t version, size_t pos) {
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    //(1) check if newline requirement is met
-    bool newline_exists = check_blocking(doc, pos);
-
-    //(2) create insert string and fill accordingly
-    char buffer[10] = {0};
-    size_t index = 0;
-
-    if (!newline_exists) buffer[index++] = '\n';
-    buffer[index++] = '>';
-    buffer[index++] = ' ';
-    buffer[index++] = '\0';
-
-    return insert(doc, pos, buffer) == 0 ? SUCCESS : GENERAL_FAIL;
-}
-
-int markdown_ordered_list(document *doc, uint64_t version, size_t pos) {
+int markdown_ordered_list(Document *doc, uint64_t version, size_t pos) {
     (void)doc; (void)version; (void)pos;
     // if (version != doc->version) return OUTDATED_VERSION;
     // if (pos > doc->size) return INVALID_CURSOR_POS;
@@ -203,77 +118,24 @@ int markdown_ordered_list(document *doc, uint64_t version, size_t pos) {
     return SUCCESS;
 }
 
-int markdown_unordered_list(document *doc, uint64_t version, size_t pos) {
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    //(1) check if newline exists
-    bool newline_exists = check_blocking(doc, pos);
-
-    //(2) create buffer and insert
-
-    char buffer[10] = {0};
-    size_t index = 0;
-
-    if (!newline_exists) buffer[index++] = '\n';
-    buffer[index++] = '-';
-    buffer[index++] = ' ';
-    buffer[index++] = '\0';
-
-    return insert(doc, pos, buffer) == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_unordered_list(Document *doc, uint64_t version, size_t pos) {
+    return enqueue_command(doc, CMD_ULIST, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_code(document *doc, uint64_t version, size_t start, size_t end) {
-    return apply_inline(doc, version, start, end, "`") == SUCCESS ? SUCCESS : GENERAL_FAIL;
+int markdown_code(Document *doc, uint64_t version, size_t start, size_t end) {
+    return enqueue_command(doc, CMD_CODE, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_horizontal_rule(document *doc, uint64_t version, size_t pos) {
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (pos > doc->size) return INVALID_CURSOR_POS;
-
-    //(1) check if newline requirement is met
-    bool newline_exists = check_blocking(doc, pos);
-
-    //(2) create insert string and fill accordingly
-    char buffer[10] = {0};
-    size_t index = 0;
-
-    if (!newline_exists) buffer[index++] = '\n';
-    
-    for (size_t j = 0; j < 3; j++) {
-        buffer[index++] = '-';
-    }
-    
-    buffer[index++] = ' ';
-    buffer[index++] = '\n';
-    buffer[index++] = '\0';
-
-    return insert(doc, pos, buffer) == 0 ? SUCCESS : GENERAL_FAIL;
+int markdown_horizontal_rule(Document *doc, uint64_t version, size_t pos) {
+    return enqueue_command(doc, CMD_HRULE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_link(document *doc, uint64_t version, size_t start, size_t end, const char *url) {
-    if (doc == NULL || url == NULL) return GENERAL_FAIL;
-    if (version != doc->version) return OUTDATED_VERSION;
-    if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
-
-
-    //(1) create suffix
-    size_t size = strlen(url) + 4; //[]()
-    char *suffix = malloc(size + 1); //+1 for \0
-    snprintf(suffix, size + 1, "](%s)", url);
-
-    //(2) insert prefix and suffix
-    int insert_end = insert(doc, end, suffix);
-    int insert_start = insert(doc, start, "[");
-    free(suffix);
-
-    if (insert_start == -1 || insert_end == -1) return GENERAL_FAIL;
-
-    return SUCCESS;
+int markdown_link(Document *doc, uint64_t version, size_t start, size_t end, const char *url) {
+    return enqueue_command(doc, CMD_LINK, 0, 0, url, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 // === Utilities ===
-void markdown_print(const document *doc, FILE *stream) {
+void markdown_print(const Document *doc, FILE *stream) {
     if (doc == NULL || stream == NULL) return;
 
     char* flat = flatten(doc);
@@ -284,35 +146,110 @@ void markdown_print(const document *doc, FILE *stream) {
     }
 }
 
-char *markdown_flatten(const document *doc) {
+char *markdown_flatten(const Document *doc) {
      return flatten(doc);
 }
 
 // === Versioning ===
-void markdown_increment_version(document *doc) {
+void markdown_increment_version(Document *doc) {
    if (doc) doc->version++;
+
+   puts("MADE IT HERE");
+   //(1) go iteratively through cmds (from head to tail)
+
+    Command* current_command = doc->command_head;
+    while (current_command) {
+        puts("AND HERE");
+        switch (current_command->type) {
+            case CMD_INSERT:
+                puts("AND HERE AGAIN");
+                insert(doc, current_command->pos, current_command->content);
+                break;
+            
+            case CMD_DELETE:
+                delete(doc, current_command->pos, current_command->len);
+                break;
+            
+            case CMD_NEWLINE:
+                insert_newline(doc, current_command->pos);
+                break;
+
+            case CMD_HEADING:
+                insert_heading(doc, current_command->level, current_command->pos);
+                break;
+
+            case CMD_BOLD:
+                insert_bold(doc, current_command->start, current_command->end);
+                break;
+            
+            case CMD_ITALIC:
+                insert_italic(doc, current_command->start, current_command->end);
+                break;
+            
+            case CMD_QUOTE:
+                insert_blockquote(doc, current_command->pos);
+                break;
+
+            case CMD_OLIST:
+                insert_unordered_list(doc, current_command->pos);
+                break;
+
+            case CMD_ULIST:
+                insert_unordered_list(doc, current_command->pos);
+                break;
+
+            case CMD_CODE:
+                insert_code(doc, current_command->start, current_command->end);
+                break;
+
+            case CMD_HRULE:
+                insert_horizontal_rule(doc, current_command->pos);
+                break;
+
+            case CMD_LINK:
+                insert_link(doc, current_command->start, current_command->end, current_command->content);
+                break;
+            
+            default: //command not recognised
+                fprintf(stderr, "markdown_inc_ver: command not recognisded\n");
+                break;
+
+        }
+
+
+        Command* temp = current_command;
+        current_command = current_command->next;
+        free(temp->content);
+        free(temp);
+
+    }
+    doc->command_head = doc->command_tail = NULL;
 }
 
-// int main(void) {
-//     document *doc = markdown_init();
-//     printf("Doc version: %ld\n", doc->version);
-//     markdown_insert(doc, 1, 0, "World");
-//     char* output = markdown_flatten(doc);
+int main(void) {
+    Document *doc = markdown_init();
+    printf("Doc version: %ld\n", doc->version);
+    markdown_insert(doc, 1, 0, "World");
+    char* output = markdown_flatten(doc);
 
-//     printf("After first insert: %s\n", output);
-//     printf("Doc version: %ld\n", doc->version);
+    printf("After first insert: %s\n", output);
+    printf("Doc version: %ld\n", doc->version);
 
-//     markdown_insert(doc, 1, 0, "Hello ");
-//     output = markdown_flatten(doc);
+    markdown_insert(doc, 1, 0, "Hello ");
+    output = markdown_flatten(doc);
 
-//     printf("After second insert: %s\n", output);
-//     printf("Doc version: %ld\n", doc->version);
+    printf("After second insert: %s\n", output);
+    printf("Doc version: %ld\n", doc->version);
 
-//     markdown_increment_version(doc);
+    markdown_increment_version(doc);
 
-//     free(output);
-//     markdown_free(doc);
-//     return 0;
-// }
+    output = markdown_flatten(doc);
+    printf("After third insert: %s\n", output);
+    printf("Doc version: %ld\n", doc->version);
+
+    free(output);
+    markdown_free(doc);
+    return 0;
+}
 
 
