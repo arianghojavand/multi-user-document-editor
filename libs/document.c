@@ -228,13 +228,15 @@ int delete(document* doc, size_t pos, size_t len) {
 
     } else if (starting == 0) {
         doc->head = end_next;
+        if (end_next) end_next->prev = NULL;
 
     } else if (ending == 2) {
         doc->tail = start_prev;
+        if (start_prev) start_prev->next = NULL;
 
     } else {
-        start_prev->next = end_next;
-        end_next->prev = start_prev;
+        if (start_prev) start_prev->next = end_next;
+        if (end_next) end_next->prev = start_prev;
 
     }
 
@@ -287,7 +289,7 @@ char* flatten(const document* doc) {
     chunk* current_chunk = doc->head;
     size_t buffer_index = 0;
 
-    while (current_chunk != NULL) {
+    while (current_chunk) {
         buffer[buffer_index++] = current_chunk->val;
         current_chunk = current_chunk->next;
     }
