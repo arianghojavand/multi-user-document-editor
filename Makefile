@@ -1,46 +1,27 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -fsanitize=address
+CFLAGS := -Wall -Wextra -fsanitize=address -g
 
 SRC_DIR := source
 LIB_DIR := libs
 
-S_OBJECTS = source/server.o
-C_OBJECTS = source/client.o
-M_OBJECTS = source/markdown.o libs/document.o
-
-CLIENT_OBJS := $(SRC_DIR)/client.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
-SERVER_OBJS := $(SRC_DIR)/server.o $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
-MARKDOWN_OBJS := $(SRC_DIR)/markdown.o $(LIB_DIR)/document.o
-
-# Targets
-all: client server markdown
-
-client: $(CLIENT_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
-
-server: $(SERVER_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
-
-
-markdown: $(MARKDOWN_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+all: server client
 
 markdown.o: $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o markdown.o
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c -o markdown_part.o
+	$(CC) $(CFLAGS) -c $(LIB_DIR)/document.c -o document_part.o
+	ld -r markdown_part.o document_part.o -o markdown.o
+	rm -f markdown_part.o document_part.o
 
-document.o: $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) -c $< -o $@
+server: $(SRC_DIR)/server.c markdown.o
+	$(CC) $(CFLAGS) -o $@ $^
+
+# === Rule: client binary ===
+client: $(SRC_DIR)/client.c markdown.o
+	$(CC) $(CFLAGS) -o $@ $^
 
 .PHONY: all clean
 
 clean:
-	rm -f server client markdown markdown.o document.o
+	rm -f server client markdown.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
 	rm -f $(SRC_DIR)/*.out $(LIB_DIR)/*.out
-
-
-
-
