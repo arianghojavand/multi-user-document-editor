@@ -179,17 +179,47 @@ void markdown_increment_version(document *doc) {
    //puts("MADE IT HERE");
    //(1) go iteratively through cmds (from head to tail)
 
+    typedef struct {
+        size_t start;
+        size_t end;
+    } DeletedRange;
+
+    DeletedRange** deleted_range_list = calloc(50, sizeof(void*));
+    size_t dr_index = 0;
+
     Command* current_command = doc->command_head;
     while (current_command) {
         //puts("AND HERE");
         switch (current_command->type) {
             case CMD_INSERT:
                 //puts("AND HERE AGAIN");
+
+                for (size_t i = 0; i < dr_index; i++) {
+                    if (current_command->pos >= deleted_range_list[i]->start
+                        && current_command->pos < deleted_range_list[i]->end) {
+
+                            current_command->pos = deleted_range_list[i]->start;
+                            break;
+
+                    }
+                }
+
                 insert(doc, current_command->pos, current_command->content);
+
                 break;
             
             case CMD_DELETE:
                 delete(doc, current_command->pos, current_command->len);
+                DeletedRange* deleted_range = malloc(sizeof(DeletedRange));
+                deleted_range->start = current_command->pos;
+                deleted_range->end = current_command->pos + current_command->len;
+
+                deleted_range_list[dr_index++] = deleted_range;
+
+                if (dr_index % 50 == 0) {
+                    deleted_range_list = realloc(deleted_range_list, 2 * dr_index * sizeof(void*));
+                }
+
                 break;
             
             case CMD_NEWLINE:
@@ -248,8 +278,18 @@ void markdown_increment_version(document *doc) {
         
         free(temp);
 
+
+
     }
     doc->command_head = doc->command_tail = NULL;
+
+    for (size_t i = 0; i < dr_index; i++) {
+        if (!deleted_range_list[i]) continue;
+
+        free(deleted_range_list[i]);
+    }
+
+    free(deleted_range_list);
     
     if (doc) doc->version++;
 }
