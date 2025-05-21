@@ -449,19 +449,30 @@ void print_doc(const document *doc, FILE *stream) {
 int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level) {
     Command* cmd = malloc(sizeof(Command));
     
+    
+
+
     //fill out struct
     cmd->type = TYPE;
     cmd->pos = pos;
     cmd->len = len;
-    cmd->content = strdup(content);
-    cmd->next = NULL;
+   
 
+    if (content) {
+        cmd->content = strdup(content);
+    } else {
+        cmd->content = NULL;
+    }
+    cmd->next = NULL;
+    
     cmd->start = start;
     cmd->end = end;
     cmd->level = level;
 
     //update command queue in main
     
+   
+
     if (!doc->command_head) {
         doc->command_head = cmd;
         doc->command_tail = cmd;

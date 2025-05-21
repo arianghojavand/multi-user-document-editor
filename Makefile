@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra 
+CFLAGS := -Wall -Wextra -fsanitize=address
 
 SRC_DIR := source
 LIB_DIR := libs
@@ -29,10 +29,8 @@ markdown: $(MARKDOWN_OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 markdown.o: $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c -o markdown_part.o
-	$(CC) $(CFLAGS) -c $(LIB_DIR)/document.c -o document_part.o
-	ar rcs markdown.o markdown_part.o document_part.o
-	rm -f markdown_part.o document_part.o
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c -o markdown.o
+	$(CC) $(CFLAGS) -c $(LIB_DIR)/document.c -o document.o
 
 document.o: $(LIB_DIR)/document.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -42,6 +40,7 @@ document.o: $(LIB_DIR)/document.c
 clean:
 	rm -f server client markdown markdown.o document.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
+	rm -f $(SRC_DIR)/*.out $(LIB_DIR)/*.out
 
 
 
