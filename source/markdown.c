@@ -252,26 +252,26 @@ void markdown_increment_version(document *doc) {
 
 // int main(void) {
 //     document *doc = markdown_init();
-//     printf("Doc version: %ld\n", doc->version);
-//     markdown_insert(doc, 1, 0, "World");
-//     char* output = markdown_flatten(doc);
+   
+//     puts("inserting...");
+//     markdown_insert(doc, 0, 0, "Hello World\n");
+//     markdown_insert(doc, 0, 0, "Hello World ");
+//     markdown_print(doc, stdout);
 
-//     printf("After first insert: %s\n", output);
-//     printf("Doc version: %ld\n", doc->version);
+//     puts("first command...");
+//     printf("%s\n", doc->command_head->content);
 
-//     markdown_insert(doc, 1, 0, "Hello ");
-//     output = markdown_flatten(doc);
-
-//     printf("After second insert: %s\n", output);
-//     printf("Doc version: %ld\n", doc->version);
-
+//     puts("incrementing...");
 //     markdown_increment_version(doc);
+//     markdown_print(doc, stdout);
 
-//     output = markdown_flatten(doc);
-//     printf("After third insert: %s\n", output);
-//     printf("Doc version: %ld\n", doc->version);
+//     printf("\n\n%ld\n\n", doc->version);
+   
+//     puts("deleting...");
+//     markdown_delete(doc, 1, 5, 6);
+//     markdown_increment_version(doc);
+//     markdown_print(doc, stdout);
 
-//     free(output);
 //     markdown_free(doc);
 //     return 0;
 // }
