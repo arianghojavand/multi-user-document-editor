@@ -406,7 +406,7 @@ int insert_horizontal_rule(document *doc, size_t pos) {
         buffer[index++] = '-';
     }
     
-    buffer[index++] = ' ';
+    //buffer[index++] = ' ';
     buffer[index++] = '\n';
     buffer[index++] = '\0';
 
