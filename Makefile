@@ -42,3 +42,7 @@ document.o: $(LIB_DIR)/document.c
 clean:
 	rm -f server client markdown markdown.o document.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
+
+
+
+

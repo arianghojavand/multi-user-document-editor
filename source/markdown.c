@@ -26,35 +26,51 @@ void markdown_free(Document *doc) {
 
 // === Edit Commands ===
 int markdown_insert(Document *doc, uint64_t version, size_t pos, const char *content) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_INSERT, pos, 0, content, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_delete(Document *doc, uint64_t version, size_t pos, size_t len) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_DELETE, pos, len, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1; 
 }
 
 // === Formatting Commands ===
 int markdown_newline(Document *doc, uint64_t version, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_NEWLINE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_heading(Document *doc, uint64_t version, size_t level, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_HEADING, pos, 0, NULL, 0, 0, level) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_bold(Document *doc, uint64_t version, size_t start, size_t end) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_BOLD, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_italic(Document *doc, uint64_t version, size_t start, size_t end) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_ITALIC, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_blockquote(Document *doc, uint64_t version, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_QUOTE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_ordered_list(Document *doc, uint64_t version, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     (void)doc; (void)version; (void)pos;
     // if (version != doc->version) return OUTDATED_VERSION;
     // if (pos > doc->size) return INVALID_CURSOR_POS;
@@ -119,18 +135,26 @@ int markdown_ordered_list(Document *doc, uint64_t version, size_t pos) {
 }
 
 int markdown_unordered_list(Document *doc, uint64_t version, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_ULIST, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_code(Document *doc, uint64_t version, size_t start, size_t end) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_CODE, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_horizontal_rule(Document *doc, uint64_t version, size_t pos) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_HRULE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 int markdown_link(Document *doc, uint64_t version, size_t start, size_t end, const char *url) {
+    if (version != doc->version) return OUTDATED_VERSION;
+
     return enqueue_command(doc, CMD_LINK, 0, 0, url, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
@@ -226,30 +250,30 @@ void markdown_increment_version(Document *doc) {
     doc->command_head = doc->command_tail = NULL;
 }
 
-int main(void) {
-    Document *doc = markdown_init();
-    printf("Doc version: %ld\n", doc->version);
-    markdown_insert(doc, 1, 0, "World");
-    char* output = markdown_flatten(doc);
+// int main(void) {
+//     Document *doc = markdown_init();
+//     printf("Doc version: %ld\n", doc->version);
+//     markdown_insert(doc, 1, 0, "World");
+//     char* output = markdown_flatten(doc);
 
-    printf("After first insert: %s\n", output);
-    printf("Doc version: %ld\n", doc->version);
+//     printf("After first insert: %s\n", output);
+//     printf("Doc version: %ld\n", doc->version);
 
-    markdown_insert(doc, 1, 0, "Hello ");
-    output = markdown_flatten(doc);
+//     markdown_insert(doc, 1, 0, "Hello ");
+//     output = markdown_flatten(doc);
 
-    printf("After second insert: %s\n", output);
-    printf("Doc version: %ld\n", doc->version);
+//     printf("After second insert: %s\n", output);
+//     printf("Doc version: %ld\n", doc->version);
 
-    markdown_increment_version(doc);
+//     markdown_increment_version(doc);
 
-    output = markdown_flatten(doc);
-    printf("After third insert: %s\n", output);
-    printf("Doc version: %ld\n", doc->version);
+//     output = markdown_flatten(doc);
+//     printf("After third insert: %s\n", output);
+//     printf("Doc version: %ld\n", doc->version);
 
-    free(output);
-    markdown_free(doc);
-    return 0;
-}
+//     free(output);
+//     markdown_free(doc);
+//     return 0;
+// }
 
 
