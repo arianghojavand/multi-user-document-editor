@@ -12,9 +12,9 @@
 #define DELETED_POSITION -2
 #define OUTDATED_VERSION -3
 
-Document* document_init(void) {
+document* document_init(void) {
 
-    Document* doc = malloc(sizeof(Document));
+    document* doc = malloc(sizeof(document));
 
     if (doc == NULL) {return NULL;}
 
@@ -29,13 +29,13 @@ Document* document_init(void) {
     return doc;
 }
 
-void document_free(Document* doc) {
+void document_free(document* doc) {
     if (doc == NULL) return;
 
-    Chunk* current = doc->head;
+    chunk* current = doc->head;
 
     while (current != NULL) {
-        Chunk* next = current->next;
+        chunk* next = current->next;
         free(current);
 
         current = next;
@@ -50,10 +50,10 @@ void document_free(Document* doc) {
     free(doc);
 }
 
-//helper function to find Chunks before and after the insertion/deletion position
+//helper function to find chunks before and after the insertion/deletion position
 //returns 0 if head, 1 if middle, 2 if tail, -1 if invalid
-int find_position(const Document* doc, size_t pos, Chunk** prev_char, Chunk** next_char) {
-    Chunk* current = doc->head;
+int find_position(const document* doc, size_t pos, chunk** prev_char, chunk** next_char) {
+    chunk* current = doc->head;
     size_t cursor = 0;
 
     if (pos == 0) {
@@ -83,53 +83,53 @@ int find_position(const Document* doc, size_t pos, Chunk** prev_char, Chunk** ne
     
 }
 
-int build_chain(const char* content, Chunk** head, Chunk** tail) {
+int build_chain(const char* content, chunk** head, chunk** tail) {
     if (content == NULL) return -1;
     
     
     
     size_t content_len = strlen(content);
-    Chunk* current_Chunk = malloc(sizeof(Chunk));
-    current_Chunk->val = content[0];
-    current_Chunk->prev = NULL;
-    *head = current_Chunk;
+    chunk* current_chunk = malloc(sizeof(chunk));
+    current_chunk->val = content[0];
+    current_chunk->prev = NULL;
+    *head = current_chunk;
 
     if (content_len == 1) {
-        current_Chunk->next = NULL;
-        *tail = current_Chunk;
+        current_chunk->next = NULL;
+        *tail = current_chunk;
         return 0;
     } 
 
     size_t i = 1;
 
     while (content[i] != '\0') {
-        Chunk* new_Chunk = malloc(sizeof(Chunk));
-        new_Chunk->val = content[i];
+        chunk* new_chunk = malloc(sizeof(chunk));
+        new_chunk->val = content[i];
 
-        new_Chunk->next = NULL;
-        new_Chunk->prev = current_Chunk;
-        current_Chunk->next = new_Chunk;
+        new_chunk->next = NULL;
+        new_chunk->prev = current_chunk;
+        current_chunk->next = new_chunk;
 
-        current_Chunk = current_Chunk->next;
+        current_chunk = current_chunk->next;
 
         i++;
 
     }
 
-    *tail = current_Chunk;
+    *tail = current_chunk;
     return 0;
 }
 
 //return 0 if successful, -1 if invalid
-int insert(Document* doc, size_t pos, const char* content) {
+int insert(document* doc, size_t pos, const char* content) {
     if (doc == NULL || content == NULL || pos > doc->size) {
-        puts("doc insert: invalid Document, empty content, or invalid position");
+        puts("doc insert: invalid document, empty content, or invalid position");
         return -1;
     }
 
     size_t content_len = strlen(content);
 
-    Chunk* chain_head = NULL, * chain_tail = NULL;
+    chunk* chain_head = NULL, * chain_tail = NULL;
     int chain = build_chain(content, &chain_head, &chain_tail);
 
     if (chain == -1){
@@ -148,16 +148,16 @@ int insert(Document* doc, size_t pos, const char* content) {
 
     //otherwise
     else {
-        Chunk* prev_char = NULL, * next_char = NULL;
+        chunk* prev_char = NULL, * next_char = NULL;
 
-        int pos_Chunks = find_position(doc, pos, &prev_char, &next_char);
-        if (pos_Chunks == -1) {
-            puts("pos_Chunks failed");
+        int pos_chunks = find_position(doc, pos, &prev_char, &next_char);
+        if (pos_chunks == -1) {
+            puts("pos_chunks failed");
             return -1;
         }
 
 
-        if (pos_Chunks == 0) {
+        if (pos_chunks == 0) {
             //inserting at the head
             doc->head->prev = chain_tail;
             chain_tail->next = doc->head;
@@ -165,7 +165,7 @@ int insert(Document* doc, size_t pos, const char* content) {
 
             doc->head = chain_head;
 
-        } else if (pos_Chunks == 1) {
+        } else if (pos_chunks == 1) {
             //inserting in the middle
             prev_char->next = chain_head;
             chain_head->prev = prev_char;
@@ -174,7 +174,7 @@ int insert(Document* doc, size_t pos, const char* content) {
             chain_tail->next = next_char;
 
 
-        } else if (pos_Chunks == 2) {
+        } else if (pos_chunks == 2) {
             //inserting tail
 
             doc->tail->next = chain_head;
@@ -193,9 +193,9 @@ int insert(Document* doc, size_t pos, const char* content) {
     return SUCCESS;
 }
 
-int delete(Document* doc, size_t pos, size_t len) { 
+int delete(document* doc, size_t pos, size_t len) { 
     if (doc == NULL || pos > doc->size) {
-        fprintf(stderr, "delete: invalid position, or null Document\n");
+        fprintf(stderr, "delete: invalid position, or null document\n");
         return -1;
     }
 
@@ -204,18 +204,18 @@ int delete(Document* doc, size_t pos, size_t len) {
     
 
     //(1) find starting and ending positions of deletion rate using helper
-    Chunk* start_prev, *start_next, *end_prev, *end_next;
+    chunk* start_prev, *start_next, *end_prev, *end_next;
 
     int starting = find_position(doc, pos, &start_prev, &start_next);
     int ending = find_position(doc, pos + len, &end_prev, &end_next);
 
     //(2) delete portions from start_next to end_prev
 
-    Chunk* current_Chunk = start_next;
+    chunk* current_chunk = start_next;
 
-    while (current_Chunk != end_next) {
-        Chunk* temp = current_Chunk;
-        current_Chunk = current_Chunk->next;
+    while (current_chunk != end_next) {
+        chunk* temp = current_chunk;
+        current_chunk = current_chunk->next;
         free(temp);
     }
 
@@ -244,11 +244,11 @@ int delete(Document* doc, size_t pos, size_t len) {
     return SUCCESS;
 }
 
-bool check_blocking(Document* doc, size_t pos) {
+bool check_blocking(document* doc, size_t pos) {
     bool newline_exists = false;
     
-    Chunk* prev_Chunk, *next_Chunk;
-    int find_pos = find_position(doc, pos, &prev_Chunk, &next_Chunk);
+    chunk* prev_chunk, *next_chunk;
+    int find_pos = find_position(doc, pos, &prev_chunk, &next_chunk);
 
     switch (find_pos) {
         case 0:
@@ -259,7 +259,7 @@ bool check_blocking(Document* doc, size_t pos) {
             return false;
         
         default:
-            if (prev_Chunk->val == '\n') {
+            if (prev_chunk->val == '\n') {
                 newline_exists = true;
             }
             break;
@@ -268,14 +268,14 @@ bool check_blocking(Document* doc, size_t pos) {
     return newline_exists;
 }
 
-int insert_newline(Document *doc, size_t pos) {
+int insert_newline(document *doc, size_t pos) {
     
     if (pos > doc->size) return INVALID_CURSOR_POS;
 
     return insert(doc, pos, "\n") == 0 ? SUCCESS : -1;
 }
 
-char* flatten(const Document* doc) {
+char* flatten(const document* doc) {
     if (doc == NULL || doc->size == 0) {
         char *empty = malloc(1);
         empty[0] = '\0';
@@ -284,12 +284,12 @@ char* flatten(const Document* doc) {
 
     char* buffer = malloc(doc->size + 1);
 
-    Chunk* current_Chunk = doc->head;
+    chunk* current_chunk = doc->head;
     size_t buffer_index = 0;
 
-    while (current_Chunk != NULL) {
-        buffer[buffer_index++] = current_Chunk->val;
-        current_Chunk = current_Chunk->next;
+    while (current_chunk != NULL) {
+        buffer[buffer_index++] = current_chunk->val;
+        current_chunk = current_chunk->next;
     }
 
     //null terminate at the end
@@ -298,7 +298,7 @@ char* flatten(const Document* doc) {
     return buffer;
 }
 
-int insert_heading(Document* doc, size_t level, size_t pos) {
+int insert_heading(document* doc, size_t level, size_t pos) {
     
     if (level < 1 || level > 3) return INVALID_CURSOR_POS;
     if (pos > doc->size) return INVALID_CURSOR_POS;
@@ -326,7 +326,7 @@ int insert_heading(Document* doc, size_t level, size_t pos) {
     return insert(doc, pos, to_insert) == 0 ? SUCCESS : -1;
 }
 
-int apply_inline(Document* doc, size_t start, size_t end, const char* style) {
+int apply_inline(document* doc, size_t start, size_t end, const char* style) {
     
     if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
 
@@ -338,15 +338,15 @@ int apply_inline(Document* doc, size_t start, size_t end, const char* style) {
     return SUCCESS;
 }
 
-int insert_bold(Document *doc, size_t start, size_t end) {
+int insert_bold(document *doc, size_t start, size_t end) {
     return apply_inline(doc, start, end, "**") == SUCCESS ? SUCCESS : -1;
 }
 
-int insert_italic(Document *doc, size_t start, size_t end) {
+int insert_italic(document *doc, size_t start, size_t end) {
     return apply_inline(doc, start, end, "*") == SUCCESS ? SUCCESS : -1;
 }
 
-int insert_blockquote(Document *doc, size_t pos) {
+int insert_blockquote(document *doc, size_t pos) {
     
     if (pos > doc->size) return INVALID_CURSOR_POS;
 
@@ -365,7 +365,7 @@ int insert_blockquote(Document *doc, size_t pos) {
     return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
 }
 
-int insert_unordered_list(Document *doc, size_t pos) {
+int insert_unordered_list(document *doc, size_t pos) {
     
     if (pos > doc->size) return INVALID_CURSOR_POS;
 
@@ -385,11 +385,11 @@ int insert_unordered_list(Document *doc, size_t pos) {
     return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
 }
 
-int insert_code(Document *doc, size_t start, size_t end) {
+int insert_code(document *doc, size_t start, size_t end) {
     return apply_inline(doc, start, end, "`") == SUCCESS ? SUCCESS : -1;
 }
 
-int insert_horizontal_rule(Document *doc, size_t pos) {
+int insert_horizontal_rule(document *doc, size_t pos) {
    
     if (pos > doc->size) return INVALID_CURSOR_POS;
 
@@ -413,7 +413,7 @@ int insert_horizontal_rule(Document *doc, size_t pos) {
     return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
 }
 
-int insert_link(Document *doc, size_t start, size_t end, const char *url) {
+int insert_link(document *doc, size_t start, size_t end, const char *url) {
     if (doc == NULL || url == NULL) return -1;
     
     if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
@@ -435,7 +435,7 @@ int insert_link(Document *doc, size_t start, size_t end, const char *url) {
 }
 
 // === Utilities ===
-void print_doc(const Document *doc, FILE *stream) {
+void print_doc(const document *doc, FILE *stream) {
     if (doc == NULL || stream == NULL) return;
 
     char* flat = flatten(doc);
@@ -446,7 +446,7 @@ void print_doc(const Document *doc, FILE *stream) {
     }
 }
 
-int enqueue_command(Document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level) {
+int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level) {
     Command* cmd = malloc(sizeof(Command));
     
     //fill out struct

@@ -16,59 +16,59 @@
 #define GENERAL_FAIL -4
 
 // === Init and Free ===
-Document *markdown_init(void) {
+document *markdown_init(void) {
     return document_init();
 }
 
-void markdown_free(Document *doc) {
+void markdown_free(document *doc) {
     document_free(doc);
 }
 
 // === Edit Commands ===
-int markdown_insert(Document *doc, uint64_t version, size_t pos, const char *content) {
+int markdown_insert(document *doc, uint64_t version, size_t pos, const char *content) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_INSERT, pos, 0, content, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_delete(Document *doc, uint64_t version, size_t pos, size_t len) {
+int markdown_delete(document *doc, uint64_t version, size_t pos, size_t len) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_DELETE, pos, len, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1; 
 }
 
 // === Formatting Commands ===
-int markdown_newline(Document *doc, uint64_t version, size_t pos) {
+int markdown_newline(document *doc, uint64_t version, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_NEWLINE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_heading(Document *doc, uint64_t version, size_t level, size_t pos) {
+int markdown_heading(document *doc, uint64_t version, size_t level, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_HEADING, pos, 0, NULL, 0, 0, level) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_bold(Document *doc, uint64_t version, size_t start, size_t end) {
+int markdown_bold(document *doc, uint64_t version, size_t start, size_t end) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_BOLD, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_italic(Document *doc, uint64_t version, size_t start, size_t end) {
+int markdown_italic(document *doc, uint64_t version, size_t start, size_t end) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_ITALIC, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_blockquote(Document *doc, uint64_t version, size_t pos) {
+int markdown_blockquote(document *doc, uint64_t version, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_QUOTE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_ordered_list(Document *doc, uint64_t version, size_t pos) {
+int markdown_ordered_list(document *doc, uint64_t version, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     (void)doc; (void)version; (void)pos;
@@ -134,32 +134,32 @@ int markdown_ordered_list(Document *doc, uint64_t version, size_t pos) {
     return SUCCESS;
 }
 
-int markdown_unordered_list(Document *doc, uint64_t version, size_t pos) {
+int markdown_unordered_list(document *doc, uint64_t version, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_ULIST, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_code(Document *doc, uint64_t version, size_t start, size_t end) {
+int markdown_code(document *doc, uint64_t version, size_t start, size_t end) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_CODE, 0, 0, NULL, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_horizontal_rule(Document *doc, uint64_t version, size_t pos) {
+int markdown_horizontal_rule(document *doc, uint64_t version, size_t pos) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_HRULE, pos, 0, NULL, 0, 0, 0) == SUCCESS ? SUCCESS : -1;
 }
 
-int markdown_link(Document *doc, uint64_t version, size_t start, size_t end, const char *url) {
+int markdown_link(document *doc, uint64_t version, size_t start, size_t end, const char *url) {
     if (version != doc->version) return OUTDATED_VERSION;
 
     return enqueue_command(doc, CMD_LINK, 0, 0, url, start, end, 0) == SUCCESS ? SUCCESS : -1;
 }
 
 // === Utilities ===
-void markdown_print(const Document *doc, FILE *stream) {
+void markdown_print(const document *doc, FILE *stream) {
     if (doc == NULL || stream == NULL) return;
 
     char* flat = flatten(doc);
@@ -170,12 +170,12 @@ void markdown_print(const Document *doc, FILE *stream) {
     }
 }
 
-char *markdown_flatten(const Document *doc) {
+char *markdown_flatten(const document *doc) {
      return flatten(doc);
 }
 
 // === Versioning ===
-void markdown_increment_version(Document *doc) {
+void markdown_increment_version(document *doc) {
    if (doc) doc->version++;
 
    puts("MADE IT HERE");
@@ -251,7 +251,7 @@ void markdown_increment_version(Document *doc) {
 }
 
 // int main(void) {
-//     Document *doc = markdown_init();
+//     document *doc = markdown_init();
 //     printf("Doc version: %ld\n", doc->version);
 //     markdown_insert(doc, 1, 0, "World");
 //     char* output = markdown_flatten(doc);

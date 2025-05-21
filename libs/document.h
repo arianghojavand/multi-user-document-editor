@@ -1,10 +1,10 @@
-#ifndef DOCUMENT_H
+#ifndef document_H
 
-#define DOCUMENT_H
+#define document_H
 /**
- * This file is the header file for all the Document functions. You will be tested on the functions inside markdown.h
+ * This file is the header file for all the document functions. You will be tested on the functions inside markdown.h
  * You are allowed to and encouraged multiple helper functions and data structures, and make your code as modular as possible. 
- * Ensure you DO NOT change the name of Document struct.
+ * Ensure you DO NOT change the name of document struct.
  */
 
 #include <stdint.h>
@@ -47,12 +47,12 @@ typedef struct chunk{
     struct chunk* next;
     struct chunk* prev;
 
-} Chunk;
+} chunk;
 
 typedef struct document {
     // TODO
-    Chunk* head;
-    Chunk* tail;
+    chunk* head;
+    chunk* tail;
 
     size_t size;
     uint64_t version;
@@ -61,35 +61,35 @@ typedef struct document {
     Command* command_head;
     Command* command_tail;
 
-} Document;
+} document;
 
 
 // Functions from here onwards.
 
 //main
-Document* document_init(void);
-void document_free(Document* doc);
-int insert(Document* doc, size_t pos, const char* content);
-int delete(Document* doc, size_t pos, size_t len);
-char* flatten(const Document* doc);
+document* document_init(void);
+void document_free(document* doc);
+int insert(document* doc, size_t pos, const char* content);
+int delete(document* doc, size_t pos, size_t len);
+char* flatten(const document* doc);
 
 //markdown functions
-bool check_blocking(Document* doc, size_t pos);
-int insert_newline(Document *doc, size_t pos);
-int insert_heading(Document* doc, size_t level, size_t pos);
-int apply_inline(Document* doc, size_t start, size_t end, const char* style);
-int insert_bold(Document *doc, size_t start, size_t end);
-int insert_italic(Document *doc, size_t start, size_t end);
-int insert_blockquote(Document *doc, size_t pos);
-int insert_unordered_list(Document *doc, size_t pos);
-int insert_code(Document *doc, size_t start, size_t end);
-int insert_horizontal_rule(Document *doc, size_t pos);
-int insert_link(Document *doc, size_t start, size_t end, const char *url);
+bool check_blocking(document* doc, size_t pos);
+int insert_newline(document *doc, size_t pos);
+int insert_heading(document* doc, size_t level, size_t pos);
+int apply_inline(document* doc, size_t start, size_t end, const char* style);
+int insert_bold(document *doc, size_t start, size_t end);
+int insert_italic(document *doc, size_t start, size_t end);
+int insert_blockquote(document *doc, size_t pos);
+int insert_unordered_list(document *doc, size_t pos);
+int insert_code(document *doc, size_t start, size_t end);
+int insert_horizontal_rule(document *doc, size_t pos);
+int insert_link(document *doc, size_t start, size_t end, const char *url);
 
 
 //helpers
-int find_position(const Document* doc, size_t pos, Chunk** prev_char, Chunk** next_char);
-int build_chain(const char* content, Chunk** head, Chunk** tail);
-int enqueue_command(Document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level);
+int find_position(const document* doc, size_t pos, chunk** prev_char, chunk** next_char);
+int build_chain(const char* content, chunk** head, chunk** tail);
+int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level);
 
 #endif
