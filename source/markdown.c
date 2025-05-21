@@ -176,8 +176,6 @@ char *markdown_flatten(const document *doc) {
 
 // === Versioning ===
 void markdown_increment_version(document *doc) {
-   if (doc) doc->version++;
-
    //puts("MADE IT HERE");
    //(1) go iteratively through cmds (from head to tail)
 
@@ -252,6 +250,8 @@ void markdown_increment_version(document *doc) {
 
     }
     doc->command_head = doc->command_tail = NULL;
+    
+    if (doc) doc->version++;
 }
 
 // int main(void) {
