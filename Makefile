@@ -29,8 +29,7 @@ markdown: $(MARKDOWN_OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 markdown.o: $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
-	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c -o markdown.o
-	$(CC) $(CFLAGS) -c $(LIB_DIR)/document.c -o document.o
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c -o markdown.o
 
 document.o: $(LIB_DIR)/document.c
 	$(CC) $(CFLAGS) -c $< -o $@
