@@ -24,4 +24,5 @@ client: $(SRC_DIR)/client.c markdown.o
 clean:
 	rm -f server client markdown.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
-	rm -f $(SRC_DIR)/*.out $(LIB_DIR)/*.out
+	rm -f *.out $(SRC_DIR)/*.out $(LIB_DIR)/*.out
+	rm -f *.pipe $(SRC_DIR)/*.pipe $(LIB_DIR)/*.pipe

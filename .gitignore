@@ -25,5 +25,6 @@ Thumbs.db
 *.log
 
 #other
-roles.txt
+*.txt
 .vscode
+*.pipe
