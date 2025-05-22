@@ -57,8 +57,8 @@ int main(int argc, char* argv[]) {
 
         char c2s[50], s2c[50];
 
-        snprintf(c2s, sizeof(c2s), "FIFO_C2S_%d.pipe", getpid());
-        snprintf(s2c, sizeof(s2c), "FIFO_S2C_%d.pipe", getpid());
+        snprintf(c2s, sizeof(c2s), "FIFO_C2S_%d", getpid());
+        snprintf(s2c, sizeof(s2c), "FIFO_S2C_%d", getpid());
 
         if ((c_write = open(c2s, O_WRONLY)) == -1) {
             fprintf(stderr, "Client: error making c2s pipe.\n");

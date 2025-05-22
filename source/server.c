@@ -27,12 +27,12 @@ void* client_thread(void* args) {
 
     mode_t perm = 0600;
 
-    if (snprintf(c2s, 50, "FIFO_C2S_%d.pipe", cpid) == -1) {
+    if (snprintf(c2s, 50, "FIFO_C2S_%d", cpid) == -1) {
         fprintf(stderr, "error printing pipe string c2s.\n");
         exit(1);
     }
 
-    if (snprintf(s2c, 50, "FIFO_S2C_%d.pipe", cpid) == -1) {
+    if (snprintf(s2c, 50, "FIFO_S2C_%d", cpid) == -1) {
         fprintf(stderr, "error printing pipe string s2c.\n");
         exit(1);
     }
