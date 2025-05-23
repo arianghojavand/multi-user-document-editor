@@ -421,12 +421,12 @@ int insert_ordered_list(document *doc, size_t pos) {
 
     size_t preceding_digit = 0;
 
-    while (insert_pos != 0 &&insert_prev && insert_prev->val != '\n') {
+    while (insert_pos != 0 &&insert_prev /*&& insert_prev->val != '\n'*/) {
         
         if (insert_prev->prev 
-            && isdigit((unsigned char) insert_prev->prev->val) 
+            && isdigit(insert_prev->prev->val) 
             && insert_prev->val == '.') {
-            preceding_digit = (unsigned char) insert_prev->prev->val - '0';
+            preceding_digit = insert_prev->prev->val - '0';
             break;
         }
         insert_prev = insert_prev->prev;
@@ -455,10 +455,12 @@ int insert_ordered_list(document *doc, size_t pos) {
         size_t next_item_num = preceding_digit + 2;
         while (insert_pos != 2 && insert_next && insert_next->val) {
       
+            /*
             if (insert_next->val == '\n') {
                 //newline found
                 break;
             }   
+            */
 
             if (insert_next->next && isdigit(insert_next->val) && (insert_next->next->val == '.')) {
                 insert_next->val = (char) (next_item_num + '0');
