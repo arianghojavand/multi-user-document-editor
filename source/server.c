@@ -78,8 +78,21 @@ void* client_thread(void* args) {
 
     char permission[50];
     if(find_user_perm(username, permission) == 0) {
-        write(s_write, permission, strlen(permission));
-        write(s_write, "\n", 2);
+
+        char* doc_text = flatten(doc);
+        size_t doc_len = strlen(doc_text);
+        uint64_t version = doc->version;
+        
+        /* sending... 
+            role - read/write
+            version - doc->version 
+            length - doc_len
+            document contents
+        */
+        dprintf(s_write, "%s\n", permission);            
+        dprintf(s_write, "%lu\n", version);        
+        dprintf(s_write, "%zu\n", doc_len);
+        write(s_write, doc_text, doc_len);
 
         //start editing the document
 
@@ -195,6 +208,15 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < c_index; i++) {
         pthread_join(clientele[i], NULL);
     
+    }
+
+    FILE* out = fopen("doc.md", "w");
+    if (!out) {
+        perror("Failed to open doc.md for writing");
+    } else {
+        markdown_print(doc, out);
+        fclose(out);
+        printf("Document saved to doc.md\n");
     }
     
     document_free(doc);

@@ -26,3 +26,4 @@ clean:
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
 	rm -f *.out $(SRC_DIR)/*.out $(LIB_DIR)/*.out
 	rm -f FIFO_C2S_* FIFO_S2C_*
+	rm -f *.md

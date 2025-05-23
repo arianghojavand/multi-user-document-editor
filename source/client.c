@@ -8,9 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <stdint.h>
 
-// volatile sig_atomic_t got_signal = 0;
+char* doc_contents = NULL, *perm = NULL;
+size_t doc_length;
+uint64_t doc_version;
 
+void receive_doc_data(int c_read);
 void setup_handler(sigset_t* mask);
 
 int main(int argc, char* argv[]) {
@@ -83,27 +87,38 @@ int main(int argc, char* argv[]) {
             printf("Client: server rejected me.\n");
             
         } else {
-
-            //let the client edit
+            
+            receive_doc_data(c_read);
 
             char command[256]; 
             while (fgets(command, sizeof(command), stdin)) {
-
+                command[strcspn(command, "\n")] = '\0';
 
                 //write to server
                 write(c_write, command, strlen(command) + 1);
 
                 //exit "gracefully" if disconnect command is given
-                if (strcmp(command, "DISCONNECT\n") == 0) {
-                    printf("Client: disconnecting from server.\n");
+                if (strcmp(command, "DISCONNECT") == 0) {
+                    printf("Client: disconnecting from server.");
                     write(c_write, command, strlen(command) + 1);
                     break;
+                }
+
+                if (strcmp(command, "DOC?") == 0) {
+                    printf("%s\n", doc_contents);
+                } 
+
+                if (strcmp(command, "PERM?") == 0) {
+                    printf("%s\n", perm);
                 }
 
                 //read from server
                 read(c_read, buffer, sizeof(buffer));
                 printf("Server: %s\n", buffer);
             }
+
+            free(doc_contents);
+            free(perm);
         }
 
         close(c_write);
@@ -112,9 +127,9 @@ int main(int argc, char* argv[]) {
 
     } else {
         fprintf(stderr, "failed sigwait or received wrong signal.\n");
+        exit(1);
     }
 
-    
     
     return 0;
 
@@ -128,5 +143,56 @@ void setup_handler(sigset_t* mask) {
     if (sigprocmask(SIG_BLOCK, mask, NULL) == -1) {
         perror("client: failed proccessing mask");
         exit(1);
+    }
+}
+
+void receive_doc_data(int c_read) {
+    //client authorised 
+
+    /* receiving... 
+        role - read/write
+        version - doc->version 
+        length - doc_len
+        document contents
+
+        into
+        char* doc_contents = NULL, *perm = NULL;
+        size_t doc_length;
+        size_t doc_version;
+
+        to read first three lines we will use fgets instead
+    */
+
+    int fdcopy = dup(c_read);
+    FILE* c_read_FILE = fdopen(fdcopy, "r");
+
+    char buffer[50];
+
+    //gets perm
+    fgets(buffer, sizeof(buffer), c_read_FILE); 
+    buffer[strcspn(buffer, "\n")] = '\0';
+    perm = strdup(buffer);
+
+    //gets version
+    fgets(buffer, sizeof(buffer), c_read_FILE);
+    sscanf(buffer, "%lu", &doc_version);
+
+    //gets length
+    fgets(buffer, sizeof(buffer), c_read_FILE);
+    sscanf(buffer, "%zu", &doc_length);
+
+    fclose(c_read_FILE);
+
+    doc_contents = malloc(doc_length + 1);
+
+    //need this to ensure full data is sent over pipe for long documents
+    size_t total_read = 0;
+    while (total_read < doc_length) {
+        ssize_t r = read(c_read, doc_contents + total_read, doc_length - total_read);
+        if (r <= 0) {
+            perror("read error or EOF");
+            break;
+        }
+        total_read += r;
     }
 }

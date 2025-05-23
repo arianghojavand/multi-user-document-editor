@@ -30,3 +30,4 @@ Thumbs.db
 *.pipe
 FIFO_C2S_*
 FIFO_S2C_*
+*.md
