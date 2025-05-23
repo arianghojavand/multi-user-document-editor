@@ -116,7 +116,7 @@ char *markdown_flatten(const document *doc) {
 
 // === Versioning ===
 void markdown_increment_version(document *doc) {
-   //puts("MADE IT HERE");
+
    //(1) go iteratively through cmds (from head to tail)
 
     typedef struct {
@@ -128,6 +128,7 @@ void markdown_increment_version(document *doc) {
     size_t dr_index = 0;
 
     Command* current_command = doc->command_head;
+    
     while (current_command) {
         //puts("AND HERE");
         switch (current_command->type) {
@@ -234,72 +235,72 @@ void markdown_increment_version(document *doc) {
     if (doc) doc->version++;
 }
 
-// int main(void) {
-//     // document *doc = markdown_init();
+int main(void) {
+    document *doc = markdown_init();
+    if (!doc) {
+        fprintf(stderr, "Failed to init document\n");
+        return 1;
+    }
 
-//     // puts("=== BATCH 1: Initial Inserts ===");
-//     // markdown_insert(doc, 0, 0, "fox");         // Insert "fox" at pos 0:          → "fox"
-//     // markdown_insert(doc, 0, 0, "The ");        // Insert "The " at pos 0:         → "The fox"
-//     // markdown_insert(doc, 0, 4, "quick ");      // Insert "quick " at pos 4:       → "The quick fox"
-//     // markdown_insert(doc, 0, 10, "brown ");     // Insert "brown " at pos 10:      → "The quick brown fox"
-//     // markdown_insert(doc, 0, 19, " jumps");      // Insert "jumps" at pos 16:       → "The quick brown jumps fox"
-//     // markdown_insert(doc, 0, 25, " over");      // Insert " over" at pos 21:       → "The quick brown jumps over fox"
-//     // markdown_insert(doc, 0, 30, " the");       // Insert " the" at pos 26:        → "The quick brown jumps over the fox"
-//     // markdown_insert(doc, 0, 34, " lazy");      // Insert " lazy" at pos 30:       → "The quick brown jumps over the lazy fox"
-//     // markdown_insert(doc, 0, 39, " dog");       // Insert " dog" at pos 35:        → "The quick brown jumps over the lazy fox dog"
+    uint64_t ver;
+    size_t pos;
+    char *buf;
 
-//     // puts("Flatten before increment (expect empty):");
-//     // char *before1 = flatten(doc);
-//     // printf("[%s]\n", before1);
-//     // free(before1);
 
-//     // puts("Incrementing version to 1...");
-//     // markdown_increment_version(doc);
-//     // markdown_print(doc, stdout);
-//     // printf("\n--- Expected v1: [The quick brown jumps over the lazy dog]\n\n");
+    // —— Version 0: queue first 3 items ——
+    ver = doc->version;
+    printf("Before version %ld:\n", ver);
+    // Item 1 at pos 0
+    pos = 0;
+    markdown_ordered_list(doc, ver, pos);
 
-//     // puts("=== BATCH 2: Deleting and Adding ===");
-//     // markdown_delete(doc, 1, 4, 6);      // Delete "quick "
-//     // markdown_insert(doc, 1, 4, "slow "); // Insert "slow " at former quick position
-//     // markdown_delete(doc, 1, 34, 4);     // Delete "lazy"
-//     // markdown_insert(doc, 1, 34, "smart"); // Replace with "smart"
+  
+    // Item 2 at end of current (still empty) doc → pos 0
+    buf = markdown_flatten(doc);
+    pos = strlen(buf);
+    free(buf);
+    markdown_ordered_list(doc, ver, pos);
 
-//     // puts("Flatten before increment (still v1):");
-//     // char *before2 = flatten(doc);
-//     // printf("[%s]\n", before2);
-//     // free(before2);
+    // Item 3 at end of current doc
+    buf = markdown_flatten(doc);
+    pos = strlen(buf);
+    free(buf);
+    markdown_ordered_list(doc, ver, pos);
 
-//     // puts("Incrementing version to 2...");
-//     // markdown_increment_version(doc);
-//     // markdown_print(doc, stdout);
-//     // printf("\n--- Expected v2: [The slow brown jumps over the smart dog]\n\n");
+    
+    // Commit to v1
+    
+    markdown_increment_version(doc);
+   
+    printf("After version: %ld\n", doc->version);
 
-//     // puts("=== BATCH 3: Overlapping Deletes ===");
-//     // markdown_delete(doc, 2, 0, 10); // Delete "The slow "
-//     // markdown_insert(doc, 2, 0, "A fast "); // Add "A fast " in front
-//     // markdown_delete(doc, 2, 17, 9); // Delete "smart dog"
-//     // markdown_insert(doc, 2, 17, "clever cat");
+    markdown_print(doc, stdout);
+    printf("\n---\n");
 
-//     // puts("Incrementing version to 3...");
-//     // markdown_increment_version(doc);
-//     // markdown_print(doc, stdout);
-//     // printf("\n--- Expected v3: [A fast brown jumps over the clever cat]\n\n");
+    
+    // —— Version 1: queue last 2 items ——
+    ver = doc->version;
+    // Item 4
+    buf = markdown_flatten(doc);
+    pos = strlen(buf);
+    free(buf);
+    markdown_ordered_list(doc, ver, pos);
 
-//     // markdown_free(doc);
+    // Item 5
+    buf = markdown_flatten(doc);
+    pos = strlen(buf);
+    free(buf);
+    markdown_ordered_list(doc, ver, pos);
 
-//     document *doc = markdown_init();
-//     markdown_insert(doc, 0, 0, "Hello World");
-//     markdown_increment_version(doc);
-//     //markdown_print(doc, stdout);
 
-//     puts("hello");
-//     markdown_delete(doc, 1, 5, 6);
-//     markdown_increment_version(doc);
-//     //markdown_print(doc, stdout);
+    // Final commit to v2
+    markdown_increment_version(doc);
+    printf("After version %ld:\n", doc->version);
+    markdown_print(doc, stdout);
+    printf("\n");
 
-//     free(doc);
-
-//     return 0;
-// }
+    markdown_free(doc);
+    return 0;
+}
 
 

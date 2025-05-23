@@ -390,6 +390,7 @@ int insert_unordered_list(document *doc, size_t pos) {
 int insert_ordered_list(document *doc, size_t pos) {
 
     if (pos > doc->size) return INVALID_CURSOR_POS;
+    printf("pos is %ld\n", pos);
 
     // //(1) check if newline exists
     bool newline_exists = check_blocking(doc, pos);
@@ -397,11 +398,14 @@ int insert_ordered_list(document *doc, size_t pos) {
     // //(2) scan through backwards and find newline OR last list entry
     chunk* insert_prev, *insert_next;
     
+
     int insert_pos;
     if((insert_pos = find_position(doc, pos, &insert_prev, &insert_next)) == -1) {
         fprintf(stderr, "insert_ordered_list: failed to find position");
         return -1;
     }
+
+    
 
     // /* 
     // EXPLANATION OF THE BELOW CODE
@@ -417,7 +421,7 @@ int insert_ordered_list(document *doc, size_t pos) {
 
     size_t preceding_digit = 0;
 
-    while (insert_prev && insert_prev->val != '\n') {
+    while (insert_pos != 0 &&insert_prev && insert_prev->val != '\n') {
         
         if (insert_prev->prev 
             && isdigit((unsigned char) insert_prev->prev->val) 
@@ -428,8 +432,10 @@ int insert_ordered_list(document *doc, size_t pos) {
         insert_prev = insert_prev->prev;
     }
 
-    char list_item_number = (char)((preceding_digit + 1) + '0');
+    
 
+    char list_item_number = (char)((preceding_digit + 1) + '0');
+    
 
     // //(3) update buffer and insert accordingly
     char buffer[10] = {0};
@@ -442,20 +448,19 @@ int insert_ordered_list(document *doc, size_t pos) {
     buffer[index++] = '\0';
 
 
-
+    
     //(4) scan through forwards to find newline OR next list entry
         //(4.1) if list entry is found update every subsequent
 
         size_t next_item_num = preceding_digit + 2;
-        while (insert_next->val && insert_next->next) {
-        
+        while (insert_pos != 2 && insert_next && insert_next->val) {
       
             if (insert_next->val == '\n') {
                 //newline found
                 break;
             }   
 
-            if (isdigit(insert_next->val) && (insert_next->next->val == '.')) {
+            if (insert_next->next && isdigit(insert_next->val) && (insert_next->next->val == '.')) {
                 insert_next->val = (char) (next_item_num + '0');
                 next_item_num++;
 
@@ -464,6 +469,8 @@ int insert_ordered_list(document *doc, size_t pos) {
             insert_next = insert_next->next;
             
     }
+
+    
 
     return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
 }
