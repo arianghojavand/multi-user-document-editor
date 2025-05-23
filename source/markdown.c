@@ -235,72 +235,55 @@ void markdown_increment_version(document *doc) {
     if (doc) doc->version++;
 }
 
-// int main(void) {
-//     document *doc = markdown_init();
-//     if (!doc) {
-//         fprintf(stderr, "Failed to init document\n");
-//         return 1;
-//     }
 
-//     uint64_t ver;
-//     size_t pos;
-//     char *buf;
+int main(void) {
+    document *doc = markdown_init();
 
+    markdown_insert(doc, 0, 0, "Project Plan");
+    markdown_heading(doc, 0, 1, 0);
+    markdown_newline(doc, 0, 12);
+    markdown_insert(doc, 0, 13, "Draft version x completed by @team.");
+    markdown_delete(doc, 0, 20, 1);
+    markdown_insert(doc, 0, 20, "1.0");
+    markdown_bold(doc, 0, 6, 17);            // "version 1.0"
+    markdown_italic(doc, 0, 15, 17);         // ".0"
+    markdown_code(doc, 0, 29, 34);           // "@team"
+    markdown_newline(doc, 0, 35);
+    markdown_insert(doc, 0, 36, "Tasks");
+    markdown_heading(doc, 0, 2, 36);
+    markdown_newline(doc, 0, 41);
+    markdown_insert(doc, 0, 42, "Setup environment");
+    markdown_code(doc, 0, 42, 59);
+    markdown_unordered_list(doc, 0, 42);
+    markdown_newline(doc, 0, 61);
+    markdown_insert(doc, 0, 62, "Write tests");
+    markdown_bold(doc, 0, 62, 73);
+    markdown_unordered_list(doc, 0, 62);
+    markdown_newline(doc, 0, 75);
+    markdown_insert(doc, 0, 76, "Review code");
+    markdown_italic(doc, 0, 76, 87);
+    markdown_unordered_list(doc, 0, 76);
+    markdown_newline(doc, 0, 89);
+    markdown_insert(doc, 0, 90, "Deliver presentation");
 
-//     // —— Version 0: queue first 3 items ——
-//     ver = doc->version;
-//     printf("Before version %ld:\n", ver);
-//     // Item 1 at pos 0
-//     pos = 0;
-//     markdown_ordered_list(doc, ver, pos);
+    markdown_ordered_list(doc, 0, 90);
 
-  
-//     // Item 2 at end of current (still empty) doc → pos 0
-//     buf = markdown_flatten(doc);
-//     pos = strlen(buf);
-//     free(buf);
-//     markdown_ordered_list(doc, ver, pos);
+    //markdown_newline(doc, 0, 110);
+    markdown_insert(doc, 0, 110, "Collect feedback");
 
-//     // Item 3 at end of current doc
-//     buf = markdown_flatten(doc);
-//     pos = strlen(buf);
-//     free(buf);
-//     markdown_ordered_list(doc, ver, pos);
+    markdown_ordered_list(doc, 0, 110);
 
-    
-//     // Commit to v1
-    
-//     markdown_increment_version(doc);
-   
-//     printf("After version: %ld\n", doc->version);
+    markdown_newline(doc, 0, 128);
+    markdown_horizontal_rule(doc, 0, 129);
+    markdown_insert(doc, 0, 134, "Note: See documentation");
+    markdown_link(doc, 0, 15, 27, "https://docs.example.com");
+    markdown_blockquote(doc, 0, 134);
 
-//     markdown_print(doc, stdout);
-//     printf("\n---\n");
+    markdown_increment_version(doc);
+    markdown_print(doc, stdout);
 
-    
-//     // —— Version 1: queue last 2 items ——
-//     ver = doc->version;
-//     // Item 4
-//     buf = markdown_flatten(doc);
-//     pos = strlen(buf);
-//     free(buf);
-//     markdown_ordered_list(doc, ver, pos);
-
-//     // Item 5
-//     buf = markdown_flatten(doc);
-//     pos = strlen(buf);
-//     free(buf);
-//     markdown_ordered_list(doc, ver, pos);
-
-
-//     // Final commit to v2
-//     markdown_increment_version(doc);
-//     printf("After version %ld:\n", doc->version);
-//     markdown_print(doc, stdout);
-//     printf("\n");
-
-//     markdown_free(doc);
-//     return 0;
-// }
+    markdown_free(doc);
+    return 0;
+}
 
 
