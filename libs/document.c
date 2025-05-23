@@ -387,6 +387,82 @@ int insert_unordered_list(document *doc, size_t pos) {
     return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
 }
 
+int insert_ordered_list(document *doc, size_t pos) {
+
+    if (pos > doc->size) return INVALID_CURSOR_POS;
+
+    // //(1) check if newline exists
+    bool newline_exists = check_blocking(doc, pos);
+
+    // //(2) scan through backwards and find newline OR last list entry
+    chunk* insert_prev, *insert_next;
+    
+    int insert_pos;
+    if((insert_pos = find_position(doc, pos, &insert_prev, &insert_next)) == -1) {
+        fprintf(stderr, "insert_ordered_list: failed to find position");
+        return -1;
+    }
+
+    size_t preceding_digit = 0;
+
+    // /* 
+    // EXPLANATION OF THE BELOW CODE
+
+    //     we basically iterate backwards two at a time to find when the last previous list entry (or a newline whichever comes first)
+
+    //     if we find a list entry then we will find its item number
+
+    //     we will then add 1 to this to find the new list item number
+
+    //     note that if a newline is found first then preceding digit will remain 0 and thus the new list item number will be a default 1
+    // */
+    while (insert_prev->prev != NULL && insert_prev->val != '\n') {
+          
+         if (isdigit(insert_prev->prev->val) && (insert_prev->val == '.')) {
+             preceding_digit = insert_prev->prev->val - '0';
+
+            //now we exit with the number of the previous list item
+            break;
+         }
+
+         insert_prev = insert_prev->prev;
+            
+    }
+
+    char list_item_number = (preceding_digit + 1) + '0';
+
+
+    // //(3) update buffer and insert accordingly
+    char buffer[10] = {0};
+    size_t index = 0;
+
+    if (!newline_exists) buffer[index++] = '\n';
+    buffer[index++] = list_item_number;
+    buffer[index++] = '.';
+    buffer[index++] = ' ';
+    buffer[index++] = '\0';
+
+
+
+    //(4) scan through forwards to find newline OR next list entry
+        //(4.1) if list entry is found update every subsequent
+
+        size_t next_item_num = preceding_digit + 1;;
+        while (insert_next->next != NULL && insert_next->val != '\n') {
+          
+         if (isdigit(insert_next->val) && (insert_next->next->val == '.')) {
+            insert_next->val = next_item_num + '0';
+            next_item_num++;
+
+         }
+
+         insert_next = insert_next->next;
+            
+    }
+
+    return insert(doc, pos, buffer) == 0 ? SUCCESS : -1;
+}
+
 int insert_code(document *doc, size_t start, size_t end) {
     return apply_inline(doc, start, end, "`") == SUCCESS ? SUCCESS : -1;
 }

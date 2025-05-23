@@ -82,6 +82,7 @@ int insert_bold(document *doc, size_t start, size_t end);
 int insert_italic(document *doc, size_t start, size_t end);
 int insert_blockquote(document *doc, size_t pos);
 int insert_unordered_list(document *doc, size_t pos);
+int insert_ordered_list(document *doc, size_t pos);
 int insert_code(document *doc, size_t start, size_t end);
 int insert_horizontal_rule(document *doc, size_t pos);
 int insert_link(document *doc, size_t start, size_t end, const char *url);
