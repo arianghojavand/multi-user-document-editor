@@ -235,72 +235,72 @@ void markdown_increment_version(document *doc) {
     if (doc) doc->version++;
 }
 
-int main(void) {
-    document *doc = markdown_init();
-    if (!doc) {
-        fprintf(stderr, "Failed to init document\n");
-        return 1;
-    }
+// int main(void) {
+//     document *doc = markdown_init();
+//     if (!doc) {
+//         fprintf(stderr, "Failed to init document\n");
+//         return 1;
+//     }
 
-    uint64_t ver;
-    size_t pos;
-    char *buf;
+//     uint64_t ver;
+//     size_t pos;
+//     char *buf;
 
 
-    // —— Version 0: queue first 3 items ——
-    ver = doc->version;
-    printf("Before version %ld:\n", ver);
-    // Item 1 at pos 0
-    pos = 0;
-    markdown_ordered_list(doc, ver, pos);
+//     // —— Version 0: queue first 3 items ——
+//     ver = doc->version;
+//     printf("Before version %ld:\n", ver);
+//     // Item 1 at pos 0
+//     pos = 0;
+//     markdown_ordered_list(doc, ver, pos);
 
   
-    // Item 2 at end of current (still empty) doc → pos 0
-    buf = markdown_flatten(doc);
-    pos = strlen(buf);
-    free(buf);
-    markdown_ordered_list(doc, ver, pos);
+//     // Item 2 at end of current (still empty) doc → pos 0
+//     buf = markdown_flatten(doc);
+//     pos = strlen(buf);
+//     free(buf);
+//     markdown_ordered_list(doc, ver, pos);
 
-    // Item 3 at end of current doc
-    buf = markdown_flatten(doc);
-    pos = strlen(buf);
-    free(buf);
-    markdown_ordered_list(doc, ver, pos);
+//     // Item 3 at end of current doc
+//     buf = markdown_flatten(doc);
+//     pos = strlen(buf);
+//     free(buf);
+//     markdown_ordered_list(doc, ver, pos);
 
     
-    // Commit to v1
+//     // Commit to v1
     
-    markdown_increment_version(doc);
+//     markdown_increment_version(doc);
    
-    printf("After version: %ld\n", doc->version);
+//     printf("After version: %ld\n", doc->version);
 
-    markdown_print(doc, stdout);
-    printf("\n---\n");
+//     markdown_print(doc, stdout);
+//     printf("\n---\n");
 
     
-    // —— Version 1: queue last 2 items ——
-    ver = doc->version;
-    // Item 4
-    buf = markdown_flatten(doc);
-    pos = strlen(buf);
-    free(buf);
-    markdown_ordered_list(doc, ver, pos);
+//     // —— Version 1: queue last 2 items ——
+//     ver = doc->version;
+//     // Item 4
+//     buf = markdown_flatten(doc);
+//     pos = strlen(buf);
+//     free(buf);
+//     markdown_ordered_list(doc, ver, pos);
 
-    // Item 5
-    buf = markdown_flatten(doc);
-    pos = strlen(buf);
-    free(buf);
-    markdown_ordered_list(doc, ver, pos);
+//     // Item 5
+//     buf = markdown_flatten(doc);
+//     pos = strlen(buf);
+//     free(buf);
+//     markdown_ordered_list(doc, ver, pos);
 
 
-    // Final commit to v2
-    markdown_increment_version(doc);
-    printf("After version %ld:\n", doc->version);
-    markdown_print(doc, stdout);
-    printf("\n");
+//     // Final commit to v2
+//     markdown_increment_version(doc);
+//     printf("After version %ld:\n", doc->version);
+//     markdown_print(doc, stdout);
+//     printf("\n");
 
-    markdown_free(doc);
-    return 0;
-}
+//     markdown_free(doc);
+//     return 0;
+// }
 
 
