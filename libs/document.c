@@ -403,8 +403,6 @@ int insert_ordered_list(document *doc, size_t pos) {
         return -1;
     }
 
-    size_t preceding_digit = 0;
-
     // /* 
     // EXPLANATION OF THE BELOW CODE
 
@@ -416,17 +414,18 @@ int insert_ordered_list(document *doc, size_t pos) {
 
     //     note that if a newline is found first then preceding digit will remain 0 and thus the new list item number will be a default 1
     // */
-    while (insert_prev->prev != NULL && insert_prev->val != '\n') {
-          
-         if (isdigit(insert_prev->prev->val) && (insert_prev->val == '.')) {
-             preceding_digit = insert_prev->prev->val - '0';
 
-            //now we exit with the number of the previous list item
+    size_t preceding_digit = 0;
+
+    while (insert_prev && insert_prev->val != '\n') {
+        
+        if (insert_prev->prev 
+            && isdigit((unsigned char) insert_prev->prev->val) 
+            && insert_prev->val == '.') {
+            preceding_digit = (unsigned char) insert_prev->prev->val - '0';
             break;
-         }
-
-         insert_prev = insert_prev->prev;
-            
+        }
+        insert_prev = insert_prev->prev;
     }
 
     char list_item_number = (char)((preceding_digit + 1) + '0');
