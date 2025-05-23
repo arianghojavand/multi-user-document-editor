@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Wextra -fsanitize=address -g
+CFLAGS := -Wall -Wextra -fsanitize=address -g -pthread
 
 SRC_DIR := source
 LIB_DIR := libs
@@ -25,4 +25,4 @@ clean:
 	rm -f server client markdown.o
 	rm -f $(SRC_DIR)/*.o $(LIB_DIR)/*.o
 	rm -f *.out $(SRC_DIR)/*.out $(LIB_DIR)/*.out
-	rm -f *.pipe $(SRC_DIR)/*.pipe $(LIB_DIR)/*.pipe
+	rm -f FIFO_C2S_* FIFO_S2C_*

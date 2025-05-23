@@ -28,3 +28,5 @@ Thumbs.db
 *.txt
 .vscode
 *.pipe
+FIFO_C2S_*
+FIFO_S2C_*

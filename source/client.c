@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     int signal_received;
     if (sigwait(&mask, &signal_received) == 0 && signal_received == SIGRTMIN + 1) {
         //good to go
-        printf("Client: received signal from server.\n");
+        //printf("Client: received signal from server.\n");
 
         int c_read, c_write;
 
@@ -78,6 +78,33 @@ int main(int argc, char* argv[]) {
         char buffer[2048];
         read(c_read, buffer, sizeof(buffer));
         printf("My perm is: %s\n", buffer);
+
+        if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
+            printf("Client: server rejected me.\n");
+            
+        } else {
+
+            //let the client edit
+
+            char command[256]; 
+            while (fgets(command, sizeof(command), stdin)) {
+
+
+                //write to server
+                write(c_write, command, strlen(command) + 1);
+
+                //exit "gracefully" if disconnect command is given
+                if (strcmp(command, "DISCONNECT\n") == 0) {
+                    printf("Client: disconnecting from server.\n");
+                    write(c_write, command, strlen(command) + 1);
+                    break;
+                }
+
+                //read from server
+                read(c_read, buffer, sizeof(buffer));
+                printf("Server: %s\n", buffer);
+            }
+        }
 
         close(c_write);
         close(c_read);

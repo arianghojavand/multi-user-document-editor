@@ -12,16 +12,23 @@
 #include <sys/wait.h>
 #include <string.h>
 
-int find_user_perm(const char* username, char* role); //0 = success, -1 = not found
+#include "../libs/markdown.h"
 
+document* doc = NULL;
+volatile sig_atomic_t server_shutdown = 0;
+pthread_mutex_t shutdown_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t shutdown_cond = PTHREAD_COND_INITIALIZER;
 
 pthread_t* clientele = NULL;
 size_t c_index = 0;
+size_t c_capacity = 1;
+
+int find_user_perm(const char* username, char* role); //0 = success, -1 = not found
+void sig_handler(int signal, siginfo_t* client_info, void* context);
 
 void* client_thread(void* args) {
 
-    puts("made it here 1");
-
+    puts("hello");
     int cpid = *(int*)args;
     char c2s[50], s2c[50];
 
@@ -37,8 +44,6 @@ void* client_thread(void* args) {
         exit(1);
     }
 
-    puts("made it here after snprintf");
-
     unlink(c2s);
     if (mkfifo(c2s, perm) == -1) {
         fprintf(stderr, "error making c2s pipe.\n");
@@ -51,15 +56,8 @@ void* client_thread(void* args) {
         exit(1);
     }
 
-    puts("made it here after mkfifo");
-
-    
-
-    puts("made it here before kill");
 
     kill(cpid, SIGRTMIN + 1);
-
-    puts("made it here after kill");
 
     int s_read, s_write;
     if ((s_read = open(c2s, O_RDONLY)) == -1) {
@@ -75,29 +73,33 @@ void* client_thread(void* args) {
     //read username
     char username[2048];
 
-    read(s_read, username, 100);
+    read(s_read, username, sizeof(username));
     printf("%s\n", username);
 
     char permission[50];
     if(find_user_perm(username, permission) == 0) {
         write(s_write, permission, strlen(permission));
-        write(s_write, "\n", 1);
+        write(s_write, "\n", 2);
 
         //start editing the document
+
+        sleep(60);
         
 
     } else {
-        write(s_write, "Reject UNAUTHORISED.", 19);
-        close(s_write);
-        close(s_read);
-        unlink(c2s);
-        unlink(s2c);
+        char* msg = "Reject UNAUTHORISED.\n";
+        write(s_write, msg, strlen(msg) + 1);
+        // close(s_write);
+        // close(s_read);
+        // unlink(c2s);
+        // unlink(s2c);
 
         sleep(1);
-        free(args);
+        // free(args);
 
-        pthread_exit(NULL);
-
+        // printf("DONE WITH CLIENT: %d\n", cpid);
+        // c_index--;
+        // pthread_exit(NULL);
     }
     
 
@@ -108,19 +110,48 @@ void* client_thread(void* args) {
 
     free(args);
 
-    puts("DONE WITH CLIENT");
+    printf("DONE WITH CLIENT: %d\n", cpid);
+    c_index--;
     pthread_exit(NULL);
 }
 
-void sig_handler(int signal, siginfo_t* client_info, void* context);
+void* stdin_responder(void* args) {
+    (void)args;
+
+    char buffer[10];
+    while (fgets(buffer, sizeof(buffer), stdin)) {
+        if (strcmp(buffer, "QUIT\n") == 0) {
+
+            if(c_index == 0) {
+                printf("Server: quitting.\n");
+
+                pthread_mutex_lock(&shutdown_lock);
+                server_shutdown = 1;
+                pthread_cond_signal(&shutdown_cond);
+                pthread_mutex_unlock(&shutdown_lock);
+
+                break;
+            }
+
+            else {
+                printf("QUIT Rejected, %ld clients still connected.\n", c_index);
+            }
+            
+        }
+
+    }
+
+    return NULL;
+}
 
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        puts("not enough arguments");
+        fprintf(stderr, "Not enough arguments.\n");
         exit(1);
     }
 
+    //(1) get the time interval and pid
     int time_interval;
     if (sscanf(argv[1], "%d", &time_interval) != 1) {
         fprintf(stderr, "failed to convert time interval to int.\n");
@@ -128,12 +159,14 @@ int main(int argc, char* argv[]) {
     }
     pid_t pid = getpid();
    
-    printf("time interval is %d\n", time_interval);
+    //printf("time interval is %d\n", time_interval);
     printf("Server PID: %d\n", pid);
 
+    //(2) create doc and set up array of threads
+    doc = document_init();
     clientele = calloc(10,sizeof(pthread_t));
 
-    // set up async sig handling
+    // (3) set up async sig handling
     struct sigaction sa;
         sa.sa_flags = SA_SIGINFO;
         sa.sa_sigaction = sig_handler;
@@ -143,13 +176,30 @@ int main(int argc, char* argv[]) {
         perror("server: sigaction failed.\n");
         exit(1);
     }
+    
+    //create thread to listen to stdin
+    pthread_t stdin_thread;
+    pthread_create(&stdin_thread, NULL, stdin_responder, NULL);
 
-    while(1) {
-        pause();
+    pthread_mutex_lock(&shutdown_lock);
+    while(!server_shutdown) {
+        pthread_cond_wait(&shutdown_cond, &shutdown_lock);
+    }
+    pthread_mutex_unlock(&shutdown_lock);
+    
+   
+    pthread_cancel(stdin_thread);
+    pthread_join(stdin_thread, NULL);
+    
+
+    for (size_t i = 0; i < c_index; i++) {
+        pthread_join(clientele[i], NULL);
+    
     }
     
+    document_free(doc);
+    free(clientele);
     return 0;
-
 }
 
 void sig_handler(int signal, siginfo_t* client_info, void* context) {
@@ -158,21 +208,27 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
     int* arg = malloc(sizeof(int));
     pid_t cpid = client_info->si_pid;
 
-    printf("from server: client pid is %d\n", cpid);
+    //printf("from server: client pid is %d\n", cpid);
     *arg = cpid;
 
-    printf("Server: received signal from client.\n");
-    
-    pthread_create(&clientele[c_index++], NULL, client_thread, (void*)arg);
+    //printf("Server: received signal from client.\n");
+    while (2* c_index >= c_capacity) {
+        pthread_t* temp = realloc(clientele, 2 * (c_capacity) * sizeof(pthread_t));
+        c_capacity *= 2;
 
-    if (c_index % 10 == 9) {
-        pthread_t* temp = realloc(clientele, 2 * (c_index + 1) * sizeof(pthread_t));
         if (!temp) {
             perror("realloc failed");
             exit(1);
         }
         clientele = temp;
     } 
+
+    if (pthread_create(&clientele[c_index], NULL, client_thread, (void*)arg) == 0) {
+        c_index++;
+    } else {
+        perror("pthread_create failed");
+        free(arg);
+    }
 }
 
 int find_user_perm(const char* username, char* role) {
