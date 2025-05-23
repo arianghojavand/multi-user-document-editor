@@ -429,7 +429,7 @@ int insert_ordered_list(document *doc, size_t pos) {
             
     }
 
-    char list_item_number = (preceding_digit + 1) + '0';
+    char list_item_number = (char)((preceding_digit + 1) + '0');
 
 
     // //(3) update buffer and insert accordingly
@@ -447,16 +447,22 @@ int insert_ordered_list(document *doc, size_t pos) {
     //(4) scan through forwards to find newline OR next list entry
         //(4.1) if list entry is found update every subsequent
 
-        size_t next_item_num = preceding_digit + 1;;
-        while (insert_next->next != NULL && insert_next->val != '\n') {
-          
-         if (isdigit(insert_next->val) && (insert_next->next->val == '.')) {
-            insert_next->val = next_item_num + '0';
-            next_item_num++;
+        size_t next_item_num = preceding_digit + 2;
+        while (insert_next->val && insert_next->next) {
+        
+      
+            if (insert_next->val == '\n') {
+                //newline found
+                break;
+            }   
 
-         }
+            if (isdigit(insert_next->val) && (insert_next->next->val == '.')) {
+                insert_next->val = (char) (next_item_num + '0');
+                next_item_num++;
 
-         insert_next = insert_next->next;
+            }
+
+            insert_next = insert_next->next;
             
     }
 
