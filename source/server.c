@@ -89,10 +89,25 @@ void* client_thread(void* args) {
             length - doc_len
             document contents
         */
-        dprintf(s_write, "%s\n", permission);            
-        dprintf(s_write, "%lu\n", version);        
-        dprintf(s_write, "%zu\n", doc_len);
-        write(s_write, doc_text, doc_len);
+
+        puts("check");
+        int s_write_copy = dup(s_write);
+        FILE* s_write_FILE = fdopen(s_write_copy, "w");
+
+        printf("%s\n", permission);
+        fprintf(s_write_FILE, "%s\n", permission);
+    
+        fprintf(s_write_FILE, "%lu\n", version);
+        printf("%lu\n", version);
+        fprintf(s_write_FILE, "%zu\n", doc_len);
+        printf("%zu\n", doc_len);
+        //fflush(s_stream);  
+
+        fflush(s_write_FILE); 
+
+        write(s_write, doc_text, doc_len);  
+
+        puts("check again");
 
         //start editing the document
 

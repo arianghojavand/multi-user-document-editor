@@ -80,15 +80,15 @@ int main(int argc, char* argv[]) {
 
         //buffer to read response from server
         char buffer[2048];
-        read(c_read, buffer, sizeof(buffer));
-        printf("My perm is: %s\n", buffer);
 
         if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
             printf("Client: server rejected me.\n");
             
         } else {
             
+            
             receive_doc_data(c_read);
+            puts("CLIENT: HELLO AGAIN");
 
             char command[256]; 
             while (fgets(command, sizeof(command), stdin)) {
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
                 //exit "gracefully" if disconnect command is given
                 if (strcmp(command, "DISCONNECT") == 0) {
-                    printf("Client: disconnecting from server.");
+                    printf("Client: disconnecting from server.\n");
                     write(c_write, command, strlen(command) + 1);
                     break;
                 }
@@ -162,28 +162,38 @@ void receive_doc_data(int c_read) {
 
         to read first three lines we will use fgets instead
     */
+   puts("CLIENT: check 1"); 
 
-    int fdcopy = dup(c_read);
-    FILE* c_read_FILE = fdopen(fdcopy, "r");
+    int c_read_copy = dup(c_read);
+    FILE* c_read_FILE = fdopen(c_read_copy, "r");
 
     char buffer[50];
 
     //gets perm
     fgets(buffer, sizeof(buffer), c_read_FILE); 
+    printf("%s\n", buffer);
     buffer[strcspn(buffer, "\n")] = '\0';
     perm = strdup(buffer);
+    printf("%s\n", perm);
+
+    puts("CLIENT: check 2"); 
 
     //gets version
     fgets(buffer, sizeof(buffer), c_read_FILE);
     sscanf(buffer, "%lu", &doc_version);
+    printf("%lu\n", doc_version);
+
+    puts("CLIENT: check 3"); 
 
     //gets length
     fgets(buffer, sizeof(buffer), c_read_FILE);
+    printf("%zu\n", doc_version);
+    puts("CLIENT: check 3.1"); 
     sscanf(buffer, "%zu", &doc_length);
-
-    fclose(c_read_FILE);
-
+    puts("CLIENT: check 3.2"); 
     doc_contents = malloc(doc_length + 1);
+
+    puts("CLIENT: check 4");
 
     //need this to ensure full data is sent over pipe for long documents
     size_t total_read = 0;
@@ -195,4 +205,6 @@ void receive_doc_data(int c_read) {
         }
         total_read += r;
     }
+
+    puts("CLIENT: check WE DID IT");
 }
