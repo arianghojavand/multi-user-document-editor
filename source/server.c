@@ -83,6 +83,9 @@ void* client_thread(void* args) {
         write(s_write, permission, strlen(permission));
         write(s_write, "\n", 1);
 
+        //start editing the document
+        
+
     } else {
         write(s_write, "Reject UNAUTHORISED.", 19);
         close(s_write);
