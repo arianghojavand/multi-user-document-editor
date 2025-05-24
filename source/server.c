@@ -153,17 +153,98 @@ void* client_thread(void* args) {
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
                     markdown_insert(doc, doc->version, pos, content);
-                    
+                    puts("inserted");
+
                 } else if (strcmp(token, "DEL") == 0) {
                     char* pos_str = strtok(NULL, " ");
                     char* len_str = strtok(NULL, "");
-
                     size_t pos, len;
                     sscanf(pos_str, "%lu", &pos);
                     sscanf(len_str, "%lu", &len);
-
                     markdown_delete(doc, doc->version, pos, len);
-                } 
+                    puts("deleted");
+
+                } else if (strcmp(token, "NEWLINE") == 0) {
+                    char* pos_str = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_newline(doc, doc->version, pos);
+                    puts("newline");
+
+                } else if (strcmp(token, "HEADING") == 0) {
+                    char* level_str = strtok(NULL, " ");
+                    char* pos_str = strtok(NULL, "");
+                    size_t level, pos;
+                    sscanf(level_str, "%lu", &level);
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_heading(doc, doc->version, level, pos);
+                    puts("heading");
+
+                } else if (strcmp(token, "BOLD") == 0) {
+                    char* start_str = strtok(NULL, " ");
+                    char* end_str = strtok(NULL, "");
+                    size_t start, end;
+                    sscanf(start_str, "%lu", &start);
+                    sscanf(end_str, "%lu", &end);
+                    markdown_bold(doc, doc->version, start, end);
+                    puts("bold");
+
+                } else if (strcmp(token, "ITALIC") == 0) {
+                    char* start_str = strtok(NULL, " ");
+                    char* end_str = strtok(NULL, "");
+                    size_t start, end;
+                    sscanf(start_str, "%lu", &start);
+                    sscanf(end_str, "%lu", &end);
+                    markdown_italic(doc, doc->version, start, end);
+                    puts("italic");
+
+                } else if (strcmp(token, "BLOCKQUOTE") == 0) {
+                    char* pos_str = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_blockquote(doc, doc->version, pos);
+                    puts("blockquote");
+
+                } else if (strcmp(token, "ORDERED_LIST") == 0) {
+                    char* pos_str = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_ordered_list(doc, doc->version, pos);
+                    puts("ordered list");
+
+                } else if (strcmp(token, "UNORDERED_LIST") == 0) {
+                    char* pos_str = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_unordered_list(doc, doc->version, pos);
+                    puts("unordered list");
+
+                } else if (strcmp(token, "CODE") == 0) {
+                    char* start_str = strtok(NULL, " ");
+                    char* end_str = strtok(NULL, "");
+                    size_t start, end;
+                    sscanf(start_str, "%lu", &start);
+                    sscanf(end_str, "%lu", &end);
+                    markdown_code(doc, doc->version, start, end);
+                    puts("code");
+
+                } else if (strcmp(token, "HORIZONTAL_RULE") == 0) {
+                    char* pos_str = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_horizontal_rule(doc, doc->version, pos);
+                    puts("horizontal rule");
+
+                } else if (strcmp(token, "LINK") == 0) {
+                    char* start_str = strtok(NULL, " ");
+                    char* end_str = strtok(NULL, " ");
+                    char* url = strtok(NULL, "");
+                    size_t start, end;
+                    sscanf(start_str, "%lu", &start);
+                    sscanf(end_str, "%lu", &end);
+                    markdown_link(doc, doc->version, start, end, url);
+                    puts("link");
+                }
 
 
                 fprintf(s_write_file, "ACKNOWLEDGED\n");
@@ -229,6 +310,7 @@ void* update_version_func(void* args) {
     while (!server_shutdown) {
         sleep(time_interval);
         markdown_increment_version(doc);
+        printf("Incremented version to: %lu\n", doc->version);
 
     }
 
@@ -273,9 +355,9 @@ int main(int argc, char* argv[]) {
     pthread_create(&stdin_thread, NULL, stdin_responder, NULL);
 
     //create thread to update docs at time intervals
-    // pthread_t update_version;
-    // int* time_arg = &time_interval;
-    // pthread_create(&update_version, NULL, update_version_func, (void*)time_arg);
+    pthread_t update_version;
+    int* time_arg = &time_interval;
+    pthread_create(&update_version, NULL, update_version_func, (void*)time_arg);
 
     pthread_mutex_lock(&shutdown_lock);
     while(!server_shutdown) {

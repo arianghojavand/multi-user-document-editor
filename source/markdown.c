@@ -15,6 +15,7 @@
 
 #define GENERAL_FAIL -4
 
+
 // === Init and Free ===
 document *markdown_init(void) {
     return document_init();

@@ -144,8 +144,8 @@ int main(int argc, char* argv[]) {
 
         }
 
-        close(c_write);
-        close(c_read);
+        fclose(c_write_file);
+        fclose(c_read_file);
 
 
     } else {
