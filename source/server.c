@@ -293,7 +293,7 @@ void* stdin_responder(void* args) {
                 server_shutdown = 1;
                 pthread_cond_signal(&shutdown_cond);
                 pthread_mutex_unlock(&shutdown_lock);
-
+                
                 break;
             }
 
@@ -379,6 +379,7 @@ int main(int argc, char* argv[]) {
     
     }
 
+    markdown_increment_version(doc);
     FILE* out = fopen("doc.md", "w");
     if (!out) {
         perror("Failed to open doc.md for writing");
