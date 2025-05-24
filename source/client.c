@@ -14,7 +14,7 @@ char* doc_contents = NULL, *perm = NULL;
 size_t doc_length;
 uint64_t doc_version;
 
-void receive_doc_data(int c_read);
+int receive_doc_data(int c_read);
 void setup_handler(sigset_t* mask);
 
 int main(int argc, char* argv[]) {
@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
     int signal_received;
     if (sigwait(&mask, &signal_received) == 0 && signal_received == SIGRTMIN + 1) {
         //good to go
-        //printf("Client: received signal from server.\n");
+        printf("Client: received signal from server.\n");
 
         int c_read, c_write;
 
@@ -78,18 +78,13 @@ int main(int argc, char* argv[]) {
         //write username to server;
         write(c_write, username, strlen(username) + 1);
 
-        //buffer to read response from server
-        char buffer[2048];
+        //receive back initial doc contents from server
 
-        if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
-            printf("Client: server rejected me.\n");
-            
-        } else {
-            
-            
-            receive_doc_data(c_read);
-            puts("CLIENT: HELLO AGAIN");
+        if (receive_doc_data(c_read) == 0) {
 
+            puts("Client: received server data");
+
+            char buffer[2048];
             char command[256]; 
             while (fgets(command, sizeof(command), stdin)) {
                 command[strcspn(command, "\n")] = '\0';
@@ -119,6 +114,7 @@ int main(int argc, char* argv[]) {
 
             free(doc_contents);
             free(perm);
+
         }
 
         close(c_write);
@@ -146,7 +142,8 @@ void setup_handler(sigset_t* mask) {
     }
 }
 
-void receive_doc_data(int c_read) {
+//0 for succes, 1 for unauthorised, -1 for error
+int receive_doc_data(int c_read) {
     //client authorised 
 
     /* receiving... 
@@ -171,6 +168,13 @@ void receive_doc_data(int c_read) {
 
     //gets perm
     fgets(buffer, sizeof(buffer), c_read_FILE); 
+    
+    if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
+        printf("Client: server rejected me.\n");
+        return 1;
+    }
+
+
     printf("%s\n", buffer);
     buffer[strcspn(buffer, "\n")] = '\0';
     perm = strdup(buffer);
@@ -207,4 +211,6 @@ void receive_doc_data(int c_read) {
     }
 
     puts("CLIENT: check WE DID IT");
+
+    return 0;
 }
