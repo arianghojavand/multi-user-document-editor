@@ -119,10 +119,6 @@ void* client_thread(void* args) {
         fprintf(s_write_file, "%zu\n", doc_len);
         printf("%zu\n", doc_len);
 
-        if (doc_len > 0 && doc_text[doc_len - 1] == '\n') {
-            doc_len--;  
-        }
-
         fwrite(doc_text, 1, doc_len, s_write_file);  
         fflush(s_write_file); 
         free(doc_text);
