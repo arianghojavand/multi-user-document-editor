@@ -132,9 +132,9 @@ void* client_thread(void* args) {
             printf("Client command: %s\n", c_command);
 
             if (strcmp(c_command, "DISCONNECT") == 0) {
-                puts("User attempting to disconnect");
-                fprintf(s_write_file, "ACKNOWLEDGED\n");
-                fflush(s_write_file); 
+                // puts("User attempting to disconnect");
+                // fprintf(s_write_file, "ACKNOWLEDGED\n");
+                // fflush(s_write_file); 
                 break;
             }
 
@@ -263,6 +263,8 @@ void* client_thread(void* args) {
         
     }
     
+    close(s_write);
+    close(s_read);
 
     fclose(s_write_file);
     fclose(s_read_file);
