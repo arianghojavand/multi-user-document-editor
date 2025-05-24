@@ -11,8 +11,8 @@
 #include <stdint.h>
 
 char* doc_contents = NULL, *perm = NULL;
-size_t doc_length;
-uint64_t doc_version;
+size_t doc_length = 0;
+uint64_t doc_version = 0;
 
 int receive_doc_data(int c_read);
 void setup_handler(sigset_t* mask);
@@ -159,58 +159,56 @@ int receive_doc_data(int c_read) {
 
         to read first three lines we will use fgets instead
     */
-   puts("CLIENT: check 1"); 
+    
+    //(1) wrap read file descriptor into FILE stream 
 
     int c_read_copy = dup(c_read);
     FILE* c_read_FILE = fdopen(c_read_copy, "r");
 
+    //(2) store initial data into buffer
     char buffer[50];
-
-    //gets perm
-    fgets(buffer, sizeof(buffer), c_read_FILE); 
     
-    if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
-        printf("Client: server rejected me.\n");
-        return 1;
-    }
-
-
-    printf("%s\n", buffer);
-    buffer[strcspn(buffer, "\n")] = '\0';
-    perm = strdup(buffer);
-    printf("%s\n", perm);
-
-    puts("CLIENT: check 2"); 
-
-    //gets version
-    fgets(buffer, sizeof(buffer), c_read_FILE);
-    sscanf(buffer, "%lu", &doc_version);
-    printf("%lu\n", doc_version);
-
-    puts("CLIENT: check 3"); 
-
-    //gets length
-    fgets(buffer, sizeof(buffer), c_read_FILE);
-    printf("%zu\n", doc_version);
-    puts("CLIENT: check 3.1"); 
-    sscanf(buffer, "%zu", &doc_length);
-    puts("CLIENT: check 3.2"); 
-    doc_contents = malloc(doc_length + 1);
-
-    puts("CLIENT: check 4");
-
-    //need this to ensure full data is sent over pipe for long documents
-    size_t total_read = 0;
-    while (total_read < doc_length) {
-        ssize_t r = read(c_read, doc_contents + total_read, doc_length - total_read);
-        if (r <= 0) {
-            perror("read error or EOF");
-            break;
+        //(2.1) get permission
+        fgets(buffer, sizeof(buffer), c_read_FILE); 
+        
+        if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
+            printf("Client: server rejected me.\n");
+            return 1;
         }
-        total_read += r;
-    }
+        printf("Server sent: %s", buffer);
+        buffer[strcspn(buffer, "\n")] = '\0';
+        perm = strdup(buffer);
 
-    puts("CLIENT: check WE DID IT");
+        //(2.2) get version
+        fgets(buffer, sizeof(buffer), c_read_FILE);
+        sscanf(buffer, "%lu", &doc_version);
+        printf("Server sent: %s", buffer);
+
+        //(2.3) get length of document
+
+        fgets(buffer, sizeof(buffer), c_read_FILE);
+        sscanf(buffer, "%zu", &doc_length);
+        doc_contents = malloc(doc_length + 1);
+        printf("Server sent: %s", buffer);
+
+        //(2.4) get document
+        fread(doc_contents, 1, doc_length, c_read_FILE);
+        doc_contents[doc_length] = '\0';
+
+        // size_t len_read;
+
+        // while(fgets(buffer, sizeof(buffer), c_read_FILE)) {
+        //     size_t line_len = strlen(buffer);
+
+        //     if (len_read + line_len >= doc_length + 1) break;
+
+        //     memcpy(doc_contents[len_read], buffer, line_len);
+
+        //     len_read += line_len;
+        // }
+
+
+    puts("Client: received initial data successfully");
 
     return 0;
 }
