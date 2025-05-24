@@ -144,7 +144,7 @@ void* client_thread(void* args) {
             if (token) {
 
                 if (strcmp(permission, "write") != 0) {
-                    char* msg = "Reject UNAUTHORISED.\n";
+                    char* msg = "Reject UNAUTHORISED\n";
                     fprintf(s_write_file, "%s", msg);
                     continue;
                 }
@@ -256,7 +256,7 @@ void* client_thread(void* args) {
     
 
     } else {
-        char* msg = "Reject UNAUTHORISED.";
+        char* msg = "Reject UNAUTHORISED";
         fprintf(s_write_file, "%s\n", msg);
         fflush(s_write_file);
         sleep(1);
