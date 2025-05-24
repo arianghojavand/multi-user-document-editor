@@ -75,8 +75,16 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
 
-        //write username to server;
-        write(c_write, username, strlen(username) + 1);
+        //WRAP INTO FILE STREAM
+        int c_read_copy = dup(c_read);
+        int c_write_copy = dup(c_write);
+
+        FILE* c_read_file = fdopen(c_read_copy, "r");
+        FILE* c_write_file = fdopen(c_write_copy, "w");
+
+        //write username to server
+        fprintf(c_write_file, "%s\n", username);
+        fflush(c_write_file);
 
         //receive back initial doc contents from server
 
@@ -86,6 +94,8 @@ int main(int argc, char* argv[]) {
 
             char buffer[2048];
             char command[256]; 
+
+
             while (fgets(command, sizeof(command), stdin)) {
                 command[strcspn(command, "\n")] = '\0';
 
@@ -108,10 +118,12 @@ int main(int argc, char* argv[]) {
                 }
 
 
-                //====CAT B - COMMANDS TO SERVER====
+                //==== CAT B - COMMANDS TO SERVER ====
 
                  //write to server
-                //write(c_write, command, strlen(command) + 1);
+                fwrite(command, 1, strlen(command), c_write_file);
+                fwrite("\n", 1, 1, c_write_file);
+                fflush(c_write_file);
 
                 //exit "gracefully" if disconnect command is given
                 if (strcmp(command, "DISCONNECT") == 0) {
@@ -123,8 +135,8 @@ int main(int argc, char* argv[]) {
                
 
                 //read from server
-                read(c_read, buffer, sizeof(buffer));
-                printf("Server: %s\n", buffer);
+                fgets(buffer, sizeof(buffer), c_read_file);
+                printf("Server: %s", buffer);
             }
 
             free(doc_contents);
@@ -187,7 +199,7 @@ int receive_doc_data(int c_read) {
         fgets(buffer, sizeof(buffer), c_read_FILE); 
         
         if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
-            printf("Client: server rejected me.\n");
+            printf("%s", buffer);
             return 1;
         }
         printf("Server sent: %s", buffer);
@@ -212,19 +224,6 @@ int receive_doc_data(int c_read) {
         }
         
         doc_contents[doc_length] = '\0';
-
-        // size_t len_read;
-
-        // while(fgets(buffer, sizeof(buffer), c_read_FILE)) {
-        //     size_t line_len = strlen(buffer);
-
-        //     if (len_read + line_len >= doc_length + 1) break;
-
-        //     memcpy(doc_contents[len_read], buffer, line_len);
-
-        //     len_read += line_len;
-        // }
-
 
     puts("Client: received initial data successfully");
 

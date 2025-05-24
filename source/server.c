@@ -11,29 +11,34 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <semaphore.h>
 
 #include "../libs/markdown.h"
+
+#define MAX_CLIENTS 64
+
 
 document* doc = NULL;
 volatile sig_atomic_t server_shutdown = 0;
 pthread_mutex_t shutdown_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t shutdown_cond = PTHREAD_COND_INITIALIZER;
 
+
 pthread_t* clientele = NULL;
 size_t c_index = 0;
 size_t c_capacity = 1;
+
 
 int find_user_perm(const char* username, char* role); //0 = success, -1 = not found
 void sig_handler(int signal, siginfo_t* client_info, void* context);
 
 void* client_thread(void* args) {
-
-    puts("hello");
     int cpid = *(int*)args;
     char c2s[50], s2c[50];
 
     mode_t perm = 0600;
 
+    //(1) establish the pipes
     if (snprintf(c2s, 50, "FIFO_C2S_%d", cpid) == -1) {
         fprintf(stderr, "error printing pipe string c2s.\n");
         exit(1);
@@ -56,30 +61,43 @@ void* client_thread(void* args) {
         exit(1);
     }
 
-
+    //(2) Send signal to client process to indicate linked pipes
     kill(cpid, SIGRTMIN + 1);
 
-    int s_read, s_write;
-    if ((s_read = open(c2s, O_RDONLY)) == -1) {
-        perror("error opening c2s pipe");
-        pthread_exit(NULL);
-    }
-    if ((s_write = open(s2c, O_WRONLY)) == -1) {
-        perror("error opening s2c pipe");
-        close(s_read);
-        pthread_exit(NULL);
-    }
+    //(3) open correct end of pipes
+        int s_read, s_write;
+        //(3.1) open c2s in read mode (s_read)
+        if ((s_read = open(c2s, O_RDONLY)) == -1) {
+            perror("error opening c2s pipe");
+            pthread_exit(NULL);
+        }
 
-    //read username
+        //(3.2) open s2c in write mode (s_write)
+        if ((s_write = open(s2c, O_WRONLY)) == -1) {
+            perror("error opening s2c pipe");
+            close(s_read);
+            pthread_exit(NULL);
+        }
+
+        //(3.3) wrap both in high level FILE I/O stream
+
+        int s_read_copy = dup(s_read);
+        int s_write_copy = dup(s_write);
+
+        FILE* s_read_file = fdopen(s_read_copy, "r");
+        FILE* s_write_file = fdopen(s_write_copy, "w");
+
+    //(4) read username and establish permission
+    
     char username[2048];
-
-    read(s_read, username, sizeof(username));
-    printf("%s\n", username);
+    fgets(username, sizeof(username), s_read_file);
+    username[strcspn(username, "\n")] = '\0';
+    printf("Client username: %s\n", username);
 
     char permission[50];
     if(find_user_perm(username, permission) == 0) {
 
-        //(1) send over document details
+        //(1) ======== send over document details ========
         char* doc_text = flatten(doc);
         size_t doc_len = strlen(doc_text);
         uint64_t version = doc->version;
@@ -92,62 +110,80 @@ void* client_thread(void* args) {
         */
 
         printf("Server: client %s authorised - sending document + metadata\n", username);
-        int s_write_copy = dup(s_write);
-        FILE* s_write_FILE = fdopen(s_write_copy, "w");
-
         printf("%s\n", permission);
-        fprintf(s_write_FILE, "%s\n", permission);
-    
-        fprintf(s_write_FILE, "%lu\n", version);
+        fprintf(s_write_file, "%s\n", permission);
+
+        fprintf(s_write_file, "%lu\n", version);
         printf("%lu\n", version);
-        fprintf(s_write_FILE, "%zu\n", doc_len);
+
+        fprintf(s_write_file, "%zu\n", doc_len);
         printf("%zu\n", doc_len);
-        //fflush(s_stream);
 
-        fwrite(doc_text, 1, doc_len, s_write_FILE);  
+        fwrite(doc_text, 1, doc_len, s_write_file);  
+        fflush(s_write_file); 
+        free(doc_text);
         puts("Server: sent data to client");
-        fflush(s_write_FILE); 
 
-        //(2) start listening for client commands
-
-        int s_read_copy = dup(s_read);
-        FILE* s_read_FILE = fdopen(s_read_copy, "r");
+        //(2) ======== start listening for client commands ========
 
         char c_command[256];
-        while (fgets(c_command, sizeof(c_command), s_read_FILE)) {
+        while (fgets(c_command, sizeof(c_command), s_read_file)) {
+            c_command[strcspn(c_command, "\n")] = '\0';
             printf("Client command: %s\n", c_command);
 
             if (strcmp(c_command, "DISCONNECT") == 0) {
                 puts("User attempting to disconnect");
                 break;
             }
+
+            //(2.1) get the first word of the command and categorize
+            char* token = strtok(c_command, " ");
+
+            if (token) {
+
+                if (strcmp(permission, "write") != 0) {
+                    char* msg = "Reject UNAUTHORISED.\n";
+                    fprintf(s_write_file, "%s", msg);
+                    continue;
+                }
+
+                if (strcmp(token, "INSERT") == 0) {
+                    char* pos_str = strtok(NULL, " ");
+                    char* content = strtok(NULL, "");
+                    size_t pos;
+                    sscanf(pos_str, "%lu", &pos);
+                    markdown_insert(doc, doc->version, pos, content);
+                    
+                } else if (strcmp(token, "DEL") == 0) {
+                    char* pos_str = strtok(NULL, " ");
+                    char* len_str = strtok(NULL, "");
+
+                    size_t pos, len;
+                    sscanf(pos_str, "%lu", &pos);
+                    sscanf(len_str, "%lu", &len);
+
+                    markdown_delete(doc, doc->version, pos, len);
+                } 
+
+
+                fprintf(s_write_file, "ACKNOWLEDGED\n");
+                fflush(s_write_file);    
+            }
         }
-        
-        free(doc_text);
-        fclose(s_write_FILE);
-        fclose(s_read_FILE);
+    
 
     } else {
-        char* msg = "Reject UNAUTHORISED.\n";
-        write(s_write, msg, strlen(msg) + 1);
-        // close(s_write);
-        // close(s_read);
-        // unlink(c2s);
-        // unlink(s2c);
-
+        char* msg = "Reject UNAUTHORISED.";
+        fprintf(s_write_file, "%s\n", msg);
+        fflush(s_write_file);
         sleep(1);
-        // free(args);
-
-        // printf("DONE WITH CLIENT: %d\n", cpid);
-        // c_index--;
-        // pthread_exit(NULL);
-
-        close(s_write);
-        close(s_read);
+        
     }
     
 
-    
+    fclose(s_write_file);
+    fclose(s_read_file);
+
     unlink(c2s);
     unlink(s2c);
 
@@ -181,6 +217,18 @@ void* stdin_responder(void* args) {
             }
             
         }
+
+    }
+
+    return NULL;
+}
+
+void* update_version_func(void* args) {
+    int time_interval = *(int*)args;
+
+    while (!server_shutdown) {
+        sleep(time_interval);
+        markdown_increment_version(doc);
 
     }
 
@@ -223,6 +271,11 @@ int main(int argc, char* argv[]) {
     //create thread to listen to stdin
     pthread_t stdin_thread;
     pthread_create(&stdin_thread, NULL, stdin_responder, NULL);
+
+    //create thread to update docs at time intervals
+    // pthread_t update_version;
+    // int* time_arg = &time_interval;
+    // pthread_create(&update_version, NULL, update_version_func, (void*)time_arg);
 
     pthread_mutex_lock(&shutdown_lock);
     while(!server_shutdown) {
