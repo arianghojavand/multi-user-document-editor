@@ -129,7 +129,10 @@ int main(int argc, char* argv[]) {
                 if (strcmp(command, "DISCONNECT") == 0) {
                     printf("Client: disconnecting from server.\n");
                     write(c_write, command, strlen(command) + 1);
-                    break;
+                    fclose(c_write_file);
+                    fclose(c_read_file);
+                    exit(0); 
+                    
                 }
 
                
