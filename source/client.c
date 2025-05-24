@@ -89,8 +89,29 @@ int main(int argc, char* argv[]) {
             while (fgets(command, sizeof(command), stdin)) {
                 command[strcspn(command, "\n")] = '\0';
 
-                //write to server
-                write(c_write, command, strlen(command) + 1);
+                
+                //====CAT A - USER LOCAL COMMANDS====
+                
+
+                if (strcmp(command, "DOC?") == 0) {
+                    if (doc_length > 0 && doc_contents) {
+                        printf("%s\n", doc_contents);
+                    }
+                    
+
+                    continue;
+                } 
+
+                if (strcmp(command, "PERM?") == 0) {
+                    printf("%s\n", perm);
+                    continue;
+                }
+
+
+                //====CAT B - COMMANDS TO SERVER====
+
+                 //write to server
+                //write(c_write, command, strlen(command) + 1);
 
                 //exit "gracefully" if disconnect command is given
                 if (strcmp(command, "DISCONNECT") == 0) {
@@ -99,13 +120,7 @@ int main(int argc, char* argv[]) {
                     break;
                 }
 
-                if (strcmp(command, "DOC?") == 0) {
-                    printf("%s\n", doc_contents);
-                } 
-
-                if (strcmp(command, "PERM?") == 0) {
-                    printf("%s\n", perm);
-                }
+               
 
                 //read from server
                 read(c_read, buffer, sizeof(buffer));
@@ -192,7 +207,10 @@ int receive_doc_data(int c_read) {
         printf("Server sent: %s", buffer);
 
         //(2.4) get document
-        fread(doc_contents, 1, doc_length, c_read_FILE);
+        if (doc_length > 0) {
+            fread(doc_contents, 1, doc_length, c_read_FILE);
+        }
+        
         doc_contents[doc_length] = '\0';
 
         // size_t len_read;

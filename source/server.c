@@ -79,6 +79,7 @@ void* client_thread(void* args) {
     char permission[50];
     if(find_user_perm(username, permission) == 0) {
 
+        //(1) send over document details
         char* doc_text = flatten(doc);
         size_t doc_len = strlen(doc_text);
         uint64_t version = doc->version;
@@ -90,7 +91,7 @@ void* client_thread(void* args) {
             document contents
         */
 
-        puts("check");
+        printf("Server: client %s authorised - sending document + metadata\n", username);
         int s_write_copy = dup(s_write);
         FILE* s_write_FILE = fdopen(s_write_copy, "w");
 
@@ -101,18 +102,30 @@ void* client_thread(void* args) {
         printf("%lu\n", version);
         fprintf(s_write_FILE, "%zu\n", doc_len);
         printf("%zu\n", doc_len);
-        //fflush(s_stream);  
+        //fflush(s_stream);
 
+        fwrite(doc_text, 1, doc_len, s_write_FILE);  
+        puts("Server: sent data to client");
         fflush(s_write_FILE); 
 
-        write(s_write, doc_text, doc_len);  
+        //(2) start listening for client commands
 
-        puts("check again");
+        int s_read_copy = dup(s_read);
+        FILE* s_read_FILE = fdopen(s_read_copy, "r");
 
-        //start editing the document
+        char c_command[256];
+        while (fgets(c_command, sizeof(c_command), s_read_FILE)) {
+            printf("Client command: %s\n", c_command);
 
-        sleep(60);
+            if (strcmp(c_command, "DISCONNECT") == 0) {
+                puts("User attempting to disconnect");
+                break;
+            }
+        }
         
+        free(doc_text);
+        fclose(s_write_FILE);
+        fclose(s_read_FILE);
 
     } else {
         char* msg = "Reject UNAUTHORISED.\n";
@@ -128,17 +141,19 @@ void* client_thread(void* args) {
         // printf("DONE WITH CLIENT: %d\n", cpid);
         // c_index--;
         // pthread_exit(NULL);
+
+        close(s_write);
+        close(s_read);
     }
     
 
-    close(s_write);
-    close(s_read);
+    
     unlink(c2s);
     unlink(s2c);
 
     free(args);
 
-    printf("DONE WITH CLIENT: %d\n", cpid);
+    printf("DONE WITH CLIENT: %s (pid: %d)\n", username, cpid);
     c_index--;
     pthread_exit(NULL);
 }
