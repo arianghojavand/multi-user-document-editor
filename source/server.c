@@ -316,7 +316,7 @@ void* client_thread(void* args) {
                 }
 
                 pthread_mutex_unlock(&log_list_lock);
-                
+
                 pthread_mutex_lock(&log_file_lock);
                 fprintf(log_fp, "%s", log_message);
                 fflush(log_fp);
@@ -544,7 +544,46 @@ int main(int argc, char* argv[]) {
     
     }
 
+    //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
+
     markdown_increment_version(doc);
+
+    pthread_mutex_lock(&log_file_lock);
+
+    char version_msg[64];
+    snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
+    broadcast_to_all_clients(version_msg);
+
+    fprintf(log_fp, "VERSION %lu\n", doc->version);
+    fflush(log_fp);
+    pthread_mutex_unlock(&log_file_lock);
+
+    while (prev_log_index < log_index) {
+        char* line = log_messages[prev_log_index++];
+
+        pthread_mutex_lock(&log_file_lock);
+        fprintf(log_fp, "%s", line);
+        broadcast_to_all_clients(line);
+        pthread_mutex_unlock(&log_file_lock);
+
+
+
+    }
+    
+    printf("Incremented version to: %lu\n", doc->version);
+
+    pthread_mutex_lock(&change_mutex);
+    change_made = 0;
+    pthread_mutex_unlock(&change_mutex);
+
+    pthread_mutex_lock(&log_file_lock);
+    fprintf(log_fp, "END\n");
+    broadcast_to_all_clients("END\n");
+    fflush(log_fp);
+    pthread_mutex_unlock(&log_file_lock);
+
+
+    
     FILE* out = fopen("doc.md", "w");
     if (!out) {
         perror("Failed to open doc.md for writing");
