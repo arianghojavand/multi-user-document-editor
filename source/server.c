@@ -566,6 +566,8 @@ int main(int argc, char* argv[]) {
         broadcast_to_all_clients("END\n");
         fflush(log_fp);
         pthread_mutex_unlock(&log_file_lock);
+
+        prev_log_index = log_index;
     }
 
 
