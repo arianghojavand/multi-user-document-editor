@@ -29,10 +29,13 @@ pthread_cond_t increment_cond = PTHREAD_COND_INITIALIZER;
 
 pthread_t* clientele = NULL;
 size_t c_index = 0;
+size_t num_active = 0;
 size_t c_capacity = 1;
 
-FILE* client_streams[MAX_CLIENTS];
+int client_streams[MAX_CLIENTS];
 pthread_mutex_t client_streams_lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t client_write_locks[MAX_CLIENTS];
 
 FILE* log_fp;
 pthread_mutex_t log_file_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -103,10 +106,12 @@ void* client_thread(void* args) {
         FILE* s_write_file = fdopen(s_write_copy, "w");
 
         pthread_mutex_lock(&client_streams_lock);
-        client_streams[c_index] = s_write_file;
-        int client_num = c_index;
+        client_streams[c_index - 1] = dup(s_write_copy);
+        size_t client_num = c_index - 1;
         pthread_mutex_unlock(&client_streams_lock);
         
+
+        printf("THIS IS CLIENT NUMBER: %zu\n", client_num);
 
     //(4) read username and establish permission
     
@@ -129,7 +134,7 @@ void* client_thread(void* args) {
             length - doc_len
             document contents
         */
-
+        pthread_mutex_lock(&client_write_locks[client_num]);
         printf("Server: client %s authorised - sending document + metadata\n", username);
         printf("%s\n", permission);
         fprintf(s_write_file, "%s\n", permission);
@@ -144,6 +149,7 @@ void* client_thread(void* args) {
         fflush(s_write_file); 
         free(doc_text);
         puts("Server: sent data to client");
+        pthread_mutex_unlock(&client_write_locks[client_num]);
 
         //(2) ======== start listening for client commands ========
 
@@ -157,7 +163,7 @@ void* client_thread(void* args) {
 
             if (strcmp(c_command, "DISCONNECT") == 0) {
                 // puts("User attempting to disconnect");
-                // fprintf(s_write_file, "ACKNOWLEDGED\n");
+                // fwrite("\0", 1, 1, s_write_file);
                 // fflush(s_write_file); 
                 break;
             }
@@ -171,8 +177,10 @@ void* client_thread(void* args) {
 
                 if (strcmp(permission, "write") != 0) {
                     char* msg = "Reject UNAUTHORISED.\n";
+                    pthread_mutex_lock(&client_write_locks[client_num]);
                     fprintf(s_write_file, "%s", msg);
                     fflush(s_write_file);
+                    pthread_mutex_unlock(&client_write_locks[client_num]);
 
                     char* log_message = malloc(256);
 
@@ -190,7 +198,7 @@ void* client_thread(void* args) {
                     }
 
                     pthread_mutex_unlock(&log_list_lock);
-                    
+
                     continue;
                 }
 
@@ -313,16 +321,20 @@ void* client_thread(void* args) {
                 change_made = 1;
                 pthread_mutex_unlock(&change_mutex);
 
+                pthread_mutex_lock(&client_write_locks[client_num]);
                 fprintf(s_write_file, "ACKNOWLEDGED\n");
                 fflush(s_write_file);    
+                pthread_mutex_unlock(&client_write_locks[client_num]);
             }
         }
     
 
     } else {
         char* msg = "Reject UNAUTHORISED";
+        pthread_mutex_lock(&client_write_locks[client_num]);
         fprintf(s_write_file, "%s\n", msg);
         fflush(s_write_file);
+        pthread_mutex_unlock(&client_write_locks[client_num]);
         sleep(1);
         
     }
@@ -341,9 +353,17 @@ void* client_thread(void* args) {
     printf("DONE WITH CLIENT: %s (pid: %d)\n", username, cpid);
 
     pthread_mutex_lock(&client_streams_lock);
-    client_streams[client_num] = NULL;
+    
+   
+    if (client_streams[client_num] != 0) {
+        close(client_streams[client_num]); 
+        client_streams[client_num] = 0;
+    }
+
     pthread_mutex_unlock(&client_streams_lock);
-    c_index--;
+    num_active--;
+
+    pthread_mutex_destroy(&client_write_locks[client_num]);
     pthread_exit(NULL);
 }
 
@@ -354,7 +374,7 @@ void* stdin_responder(void* args) {
     while (fgets(buffer, sizeof(buffer), stdin)) {
         if (strcmp(buffer, "QUIT\n") == 0) {
 
-            if(c_index == 0) {
+            if(num_active == 0) {
                 printf("Server: quitting.\n");
 
                 pthread_mutex_lock(&shutdown_lock);
@@ -366,11 +386,15 @@ void* stdin_responder(void* args) {
             }
 
             else {
-                printf("QUIT Rejected, %ld clients still connected.\n", c_index);
+                printf("QUIT Rejected, %ld clients still connected.\n", num_active);
             }
             
         } else if (strcmp(buffer, "LOG?\n") == 0) {
             system("cat log.txt");
+            continue;
+            
+        } else if (strcmp(buffer, "DOC?\n") == 0) {
+            if (doc) markdown_print(doc, stdout);
             continue;
             
         }
@@ -389,6 +413,11 @@ void* update_version_func(void* args) {
         sleep(time_interval);
 
         pthread_mutex_lock(&log_file_lock);
+
+        char version_msg[64];
+        snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
+        broadcast_to_all_clients(version_msg);
+
         fprintf(log_fp, "VERSION %lu\n", doc->version);
         fflush(log_fp);
         pthread_mutex_unlock(&log_file_lock);
@@ -401,7 +430,7 @@ void* update_version_func(void* args) {
 
                 pthread_mutex_lock(&log_file_lock);
                 fprintf(log_fp, "%s", line);
-                broadcast_to_all_clients("END\n");
+                broadcast_to_all_clients(line);
                 pthread_mutex_unlock(&log_file_lock);
 
 
@@ -409,12 +438,7 @@ void* update_version_func(void* args) {
             }
 
         
-            pthread_mutex_lock(&log_file_lock);
-            fprintf(log_fp, "END\n");
-            broadcast_to_all_clients("END\n");
-            fflush(log_fp);
-            pthread_mutex_unlock(&log_file_lock);
-
+           
             
             printf("Incremented version to: %lu\n", doc->version);
 
@@ -425,6 +449,12 @@ void* update_version_func(void* args) {
         } else {
             printf("No changes made to version: %lu\n", doc->version);
         }
+
+        pthread_mutex_lock(&log_file_lock);
+        fprintf(log_fp, "END\n");
+        broadcast_to_all_clients("END\n");
+        fflush(log_fp);
+        pthread_mutex_unlock(&log_file_lock);
 
 
         
@@ -553,6 +583,9 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
     } 
 
     if (pthread_create(&clientele[c_index], NULL, client_thread, (void*)arg) == 0) {
+        pthread_mutex_init(&client_write_locks[c_index], NULL);
+        printf("Created a mutex for client num: %zu\n", c_index);
+        num_active++;
         c_index++;
     } else {
         perror("pthread_create failed");
@@ -586,11 +619,17 @@ void broadcast_to_all_clients(const char* line) {
     pthread_mutex_lock(&client_streams_lock);
 
     for (size_t i = 0; i < c_index; i++) {
-        FILE* stream = client_streams[i];
+
+        if (client_streams[i] == 0) continue;
+
+        FILE* stream = fdopen(client_streams[i], "w");
+
+        pthread_mutex_lock(&client_write_locks[i]);
         if (stream != NULL) {
             fprintf(stream, "%s", line);
             fflush(stream);
         }
+        pthread_mutex_unlock(&client_write_locks[i]);
     }
 
     pthread_mutex_unlock(&client_streams_lock);

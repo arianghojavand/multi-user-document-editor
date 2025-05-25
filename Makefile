@@ -31,4 +31,4 @@ clean:
 	rm -f *.o $(SRC_DIR)/*.o $(LIB_DIR)/*.o
 	rm -f *.out $(SRC_DIR)/*.out $(LIB_DIR)/*.out
 	rm -f FIFO_C2S_* FIFO_S2C_*
-	rm -f *.md client_log.txt log.txt
+	rm -f *.md client_log_*.txt log.txt

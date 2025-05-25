@@ -12,6 +12,10 @@
 
 #include <pthread.h>
 
+volatile sig_atomic_t client_shutdown = 0;
+
+char* client_log = NULL;
+
 char* doc_contents = NULL, *perm = NULL;
 size_t doc_length = 0;
 uint64_t doc_version = 0;
@@ -23,14 +27,13 @@ void* receiver_func(void* args) {
     int c_file_int = *(int*)args;
     
     FILE* c_read_file = fdopen(c_file_int, "r");
-
-    FILE* log_client = fopen("client_log.txt", "a");
+    FILE* log_client = fopen(client_log, "a");
 
     free(args);
 
-    char line[512];
+    char line[2048];
 
-    while (fgets(line, sizeof(line), c_read_file)) {
+    while (!client_shutdown && fgets(line, sizeof(line), c_read_file)) {
         //printf("Server said %s", line);
         
         if (strncmp(line, "ACK", 3) == 0) {
@@ -42,16 +45,18 @@ void* receiver_func(void* args) {
 
             fprintf(log_client, "%s", line);
 
-            while (fgets(line, sizeof(line), c_read_file)) {
+            while (!client_shutdown && fgets(line, sizeof(line), c_read_file)) {
                 if (strncmp(line, "END", 3) == 0) {
                     printf("End of update.\n");
                     fprintf(log_client, "%s", line); 
+                    fflush(log_client);
                     break;
                 }
 
                 if (strncmp(line, "EDIT", 4) == 0) {
                     printf("Log line: %s", line);
                     fprintf(log_client, "%s", line); 
+                    fflush(log_client);
                 } else {
                     
                     fprintf(stderr, "Unexpected log content: %s", line);
@@ -60,10 +65,6 @@ void* receiver_func(void* args) {
 
 
 
-        } else if (strncmp(line, "EDIT", 4) == 0) {
-            printf("Log line: %s", line);
-        } else if (strncmp(line, "END", 3) == 0) {
-            printf("End of update.\n");
         } else if (strncmp(line, "Reject", 6) == 0) {
             fprintf(stdout, "Server rejected: %s", line);
         } else {
@@ -95,10 +96,14 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "error in server_pid argument\n");
         exit(1);
     }
+
+    
     
         //(2.2) get username
     username = argv[2];
     printf("%d and %s\n", server_pid, username);
+    client_log = malloc(sizeof(username) + 20);
+    sprintf(client_log, "client_log_%s.txt", username);
 
     //(3) setup signal handling for SIGRTMIN
     sigset_t mask;
@@ -184,7 +189,9 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (strcmp(command, "LOG?") == 0) {
-                    system("cat client_log.txt");
+                    char msg[50];
+                    sprintf(msg, "cat %s", client_log);
+                    system(msg);
                     continue;
                 }
 
@@ -201,10 +208,12 @@ int main(int argc, char* argv[]) {
                 if (strcmp(command, "DISCONNECT") == 0) {
                     printf("Client: disconnecting from server.\n");
                     //write(c_write, command, strlen(command) + 1);
-                    fclose(c_write_file);
-                    pthread_cancel(receiver);
+                    //fclose(c_write_file);
+                    client_shutdown = 1;
+                    // fclose(c_read_file);
+                    //pthread_cancel(receiver);
                     pthread_join(receiver, NULL);
-                    fclose(c_read_file);
+                    
                     exit(0); 
                     
                 }
@@ -216,7 +225,7 @@ int main(int argc, char* argv[]) {
                 //printf("Server: %s", buffer);
             }
             
-            pthread_cancel(receiver);
+            client_shutdown = 1;
             pthread_join(receiver, NULL);
             free(doc_contents);
             free(perm);
@@ -232,6 +241,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
+    free(client_log);
     
     return 0;
 
