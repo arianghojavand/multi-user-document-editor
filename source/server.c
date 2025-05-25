@@ -444,6 +444,8 @@ void* update_version_func(void* args) {
 
             }
 
+            prev_log_index = log_index;
+
         
            
             
