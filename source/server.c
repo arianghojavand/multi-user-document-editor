@@ -512,10 +512,6 @@ int main(int argc, char* argv[]) {
     }
     pthread_mutex_unlock(&shutdown_lock);
     
-   
-    pthread_cancel(stdin_thread);
-    pthread_join(stdin_thread, NULL);
-    
 
     for (size_t i = 0; i < c_index; i++) {
         pthread_join(clientele[i], NULL);
