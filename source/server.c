@@ -170,8 +170,27 @@ void* client_thread(void* args) {
                 int result = 0;
 
                 if (strcmp(permission, "write") != 0) {
-                    char* msg = "Reject UNAUTHORISED\n";
+                    char* msg = "Reject UNAUTHORISED.\n";
                     fprintf(s_write_file, "%s", msg);
+                    fflush(s_write_file);
+
+                    char* log_message = malloc(256);
+
+
+                    pthread_mutex_lock(&log_list_lock);
+                    sprintf(log_message, "EDIT %s %s %s\n", username, full_command, "Reject UNAUTHORISED");
+                    log_messages[log_index++] = log_message;
+                    //fprintf(log_fp, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
+                    //last_line_read++;
+
+                    while (log_index >= log_capacity) {
+                        char** temp = realloc(log_messages, sizeof(void*)* log_capacity * 2);
+                        log_messages = temp;
+                        log_capacity *= 2;
+                    }
+
+                    pthread_mutex_unlock(&log_list_lock);
+                    
                     continue;
                 }
 

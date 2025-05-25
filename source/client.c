@@ -31,8 +31,11 @@ void* receiver_func(void* args) {
     char line[512];
 
     while (fgets(line, sizeof(line), c_read_file)) {
+        //printf("Server said %s", line);
+        
         if (strncmp(line, "ACK", 3) == 0) {
             printf("Server ACK: %s", line);
+
         } else if (strncmp(line, "VERSION", 7) == 0) {
             printf("Received version update: %s", line);
             // now loop to collect full EDIT logs until END
@@ -62,7 +65,7 @@ void* receiver_func(void* args) {
         } else if (strncmp(line, "END", 3) == 0) {
             printf("End of update.\n");
         } else if (strncmp(line, "Reject", 6) == 0) {
-            fprintf(stderr, "Server rejected: %s", line);
+            fprintf(stdout, "Server rejected: %s", line);
         } else {
             printf("Server says: %s", line);
         }
