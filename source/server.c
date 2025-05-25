@@ -317,10 +317,10 @@ void* client_thread(void* args) {
 
                 pthread_mutex_unlock(&log_list_lock);
 
-                pthread_mutex_lock(&log_file_lock);
-                fprintf(log_fp, "%s", log_message);
-                fflush(log_fp);
-                pthread_mutex_unlock(&log_file_lock);
+                // pthread_mutex_lock(&log_file_lock);
+                // fprintf(log_fp, "%s", log_message);
+                // fflush(log_fp);
+                // pthread_mutex_unlock(&log_file_lock);
 
                 
 
