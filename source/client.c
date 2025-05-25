@@ -10,12 +10,71 @@
 #include <fcntl.h>
 #include <stdint.h>
 
+#include <pthread.h>
+
 char* doc_contents = NULL, *perm = NULL;
 size_t doc_length = 0;
 uint64_t doc_version = 0;
 
 int receive_doc_data(int c_read);
 void setup_handler(sigset_t* mask);
+
+void* receiver_func(void* args) {
+    int c_file_int = *(int*)args;
+    
+    FILE* c_read_file = fdopen(c_file_int, "r");
+
+    FILE* log_client = fopen("client_log.txt", "a");
+
+    free(args);
+
+    char line[512];
+
+    while (fgets(line, sizeof(line), c_read_file)) {
+        if (strncmp(line, "ACK", 3) == 0) {
+            printf("Server ACK: %s", line);
+        } else if (strncmp(line, "VERSION", 7) == 0) {
+            printf("Received version update: %s", line);
+            // now loop to collect full EDIT logs until END
+
+            fprintf(log_client, "%s", line);
+
+            while (fgets(line, sizeof(line), c_read_file)) {
+                if (strncmp(line, "END", 3) == 0) {
+                    printf("End of update.\n");
+                    fprintf(log_client, "%s", line); 
+                    break;
+                }
+
+                if (strncmp(line, "EDIT", 4) == 0) {
+                    printf("Log line: %s", line);
+                    fprintf(log_client, "%s", line); 
+                } else {
+                    
+                    fprintf(stderr, "Unexpected log content: %s", line);
+                }
+            }
+
+
+
+        } else if (strncmp(line, "EDIT", 4) == 0) {
+            printf("Log line: %s", line);
+        } else if (strncmp(line, "END", 3) == 0) {
+            printf("End of update.\n");
+        } else if (strncmp(line, "Reject", 6) == 0) {
+            fprintf(stderr, "Server rejected: %s", line);
+        } else {
+            printf("Server says: %s", line);
+        }
+
+        
+
+    }
+
+    fclose(log_client);
+
+    return NULL;
+}
 
 int main(int argc, char* argv[]) {
     //(1) check number of arguments is correct
@@ -92,7 +151,13 @@ int main(int argc, char* argv[]) {
 
             puts("Client: received server data");
 
-            char buffer[2048];
+            int* c_file = malloc(sizeof(int));
+            *c_file = c_read_copy;
+
+            pthread_t receiver;
+            pthread_create(&receiver, NULL, receiver_func, (void*) c_file);
+
+            //char buffer[2048];
             char command[256]; 
 
 
@@ -107,8 +172,6 @@ int main(int argc, char* argv[]) {
                     if (doc_length > 0 && doc_contents) {
                         printf("%s\n", doc_contents);
                     }
-                    
-
                     continue;
                 } 
 
@@ -117,10 +180,16 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
 
+                if (strcmp(command, "LOG?") == 0) {
+                    system("cat client_log.txt");
+                    continue;
+                }
+
 
                 //==== CAT B - COMMANDS TO SERVER ====
 
                  //write to server
+                
                 fwrite(command, 1, strlen(command), c_write_file);
                 fwrite("\n", 1, 1, c_write_file);
                 fflush(c_write_file);
@@ -128,8 +197,10 @@ int main(int argc, char* argv[]) {
                 //exit "gracefully" if disconnect command is given
                 if (strcmp(command, "DISCONNECT") == 0) {
                     printf("Client: disconnecting from server.\n");
-                    write(c_write, command, strlen(command) + 1);
+                    //write(c_write, command, strlen(command) + 1);
                     fclose(c_write_file);
+                    pthread_cancel(receiver);
+                    pthread_join(receiver, NULL);
                     fclose(c_read_file);
                     exit(0); 
                     
@@ -138,10 +209,12 @@ int main(int argc, char* argv[]) {
                
 
                 //read from server
-                fgets(buffer, sizeof(buffer), c_read_file);
-                printf("Server: %s", buffer);
+                //fgets(buffer, sizeof(buffer), c_read_file);
+                //printf("Server: %s", buffer);
             }
-
+            
+            pthread_cancel(receiver);
+            pthread_join(receiver, NULL);
             free(doc_contents);
             free(perm);
 

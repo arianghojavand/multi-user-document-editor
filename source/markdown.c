@@ -131,10 +131,10 @@ void markdown_increment_version(document *doc) {
     Command* current_command = doc->command_head;
     
     while (current_command) {
-        //puts("AND HERE");
+        
         switch (current_command->type) {
             case CMD_INSERT:
-                //puts("AND HERE AGAIN");
+                
 
                 for (size_t i = 0; i < dr_index; i++) {
                     if (current_command->pos >= deleted_range_list[i]->start
