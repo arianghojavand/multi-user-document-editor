@@ -548,41 +548,25 @@ int main(int argc, char* argv[]) {
 
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
 
-    markdown_increment_version(doc);
+    if (change_made) {
+        markdown_increment_version(doc);
 
-    // pthread_mutex_lock(&log_file_lock);
+        pthread_mutex_lock(&log_file_lock);
+        char version_msg[64];
+        snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
+        fprintf(log_fp, "%s", version_msg);
+        broadcast_to_all_clients(version_msg);
 
-    // char version_msg[64];
-    // snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
-    // broadcast_to_all_clients(version_msg);
+        while (prev_log_index < log_index) {
+            fprintf(log_fp, "%s", log_messages[prev_log_index]);
+            broadcast_to_all_clients(log_messages[prev_log_index++]);
+        }
 
-    // fprintf(log_fp, "VERSION %lu\n", doc->version);
-    // fflush(log_fp);
-    // pthread_mutex_unlock(&log_file_lock);
-
-    // while (prev_log_index < log_index) {
-    //     char* line = log_messages[prev_log_index++];
-
-    //     pthread_mutex_lock(&log_file_lock);
-    //     fprintf(log_fp, "%s", line);
-    //     broadcast_to_all_clients(line);
-    //     pthread_mutex_unlock(&log_file_lock);
-
-
-
-    // }
-    
-    // printf("Incremented version to: %lu\n", doc->version);
-
-    // pthread_mutex_lock(&change_mutex);
-    // change_made = 0;
-    // pthread_mutex_unlock(&change_mutex);
-
-    // pthread_mutex_lock(&log_file_lock);
-    // fprintf(log_fp, "END\n");
-    // broadcast_to_all_clients("END\n");
-    // fflush(log_fp);
-    // pthread_mutex_unlock(&log_file_lock);
+        fprintf(log_fp, "END\n");
+        broadcast_to_all_clients("END\n");
+        fflush(log_fp);
+        pthread_mutex_unlock(&log_file_lock);
+    }
 
 
     
