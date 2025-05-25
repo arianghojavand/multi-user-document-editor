@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <time.h>
 
 #include <pthread.h>
 
@@ -99,11 +100,18 @@ int main(int argc, char* argv[]) {
 
     
     
-        //(2.2) get username
+        //(2.2) get username + random num for client log file
     username = argv[2];
     printf("%d and %s\n", server_pid, username);
-    client_log = malloc(sizeof(username) + 20);
-    sprintf(client_log, "client_log_%s.txt", username);
+    client_log = malloc(sizeof(username) + 100);
+
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    srand(ts.tv_nsec ^ ts.tv_sec); 
+
+    int rand_id = rand() % 100000; 
+
+    sprintf(client_log, "client_log_%s_%d.txt", username, rand_id);
 
     //(3) setup signal handling for SIGRTMIN
     sigset_t mask;
