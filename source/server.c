@@ -337,7 +337,7 @@ void* client_thread(void* args) {
     
 
     } else {
-        char* msg = "Reject UNAUTHORISED";
+        char* msg = "Reject UNAUTHORISED.";
         pthread_mutex_lock(&client_write_locks[client_num]);
         fprintf(s_write_file, "%s\n", msg);
         fflush(s_write_file);
