@@ -548,27 +548,27 @@ int main(int argc, char* argv[]) {
 
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
 
-    if (change_made) {
-        markdown_increment_version(doc);
 
-        pthread_mutex_lock(&log_file_lock);
-        char version_msg[64];
-        snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
-        fprintf(log_fp, "%s", version_msg);
-        broadcast_to_all_clients(version_msg);
+    markdown_increment_version(doc);
 
-        while (prev_log_index < log_index) {
-            fprintf(log_fp, "%s", log_messages[prev_log_index]);
-            broadcast_to_all_clients(log_messages[prev_log_index++]);
-        }
+    pthread_mutex_lock(&log_file_lock);
+    char version_msg[64];
+    snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
+    fprintf(log_fp, "%s", version_msg);
+    broadcast_to_all_clients(version_msg);
 
-        fprintf(log_fp, "END\n");
-        broadcast_to_all_clients("END\n");
-        fflush(log_fp);
-        pthread_mutex_unlock(&log_file_lock);
-
-        prev_log_index = log_index;
+    while (prev_log_index < log_index) {
+        fprintf(log_fp, "%s", log_messages[prev_log_index]);
+        broadcast_to_all_clients(log_messages[prev_log_index++]);
     }
+
+    fprintf(log_fp, "END\n");
+    broadcast_to_all_clients("END\n");
+    fflush(log_fp);
+    pthread_mutex_unlock(&log_file_lock);
+
+    prev_log_index = log_index;
+
 
     
 
