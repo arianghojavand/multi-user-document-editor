@@ -489,9 +489,17 @@ int insert_horizontal_rule(document *doc, size_t pos) {
     bool newline_exists = check_blocking(doc, pos);
 
         //(1.2) check newline after pos insert
-        chunk* prev, *next;
-        find_position(doc, pos, &prev, &next);
-        bool newline_after = next && next->val == '\n';
+        bool newline_after = false;
+
+        if (pos < doc->size) {
+            chunk* prev, *next;
+            find_position(doc, pos, &prev, &next);
+            newline_after = next && next->val == '\n';
+        }
+
+        else if (doc->tail && doc->tail->val == '\n') {
+            newline_after = true;
+        }
 
     //(2) create insert string and fill accordingly
     char buffer[10] = {0};
