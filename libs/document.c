@@ -585,4 +585,5 @@ int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, con
     
     return SUCCESS;
 
+    
 }
