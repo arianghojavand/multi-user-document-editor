@@ -159,7 +159,7 @@ void* client_thread(void* args) {
         while (fgets(c_command, sizeof(c_command), s_read_file)) {
             c_command[strcspn(c_command, "\n")] = '\0';
             strcpy(full_command, c_command);
-            printf("Client command: %s\n", c_command);
+            printf("Client %s command: %s\n", username, c_command);
 
             if (strcmp(c_command, "DISCONNECT") == 0) {
                 // puts("User attempting to disconnect");
