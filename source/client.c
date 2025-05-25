@@ -295,7 +295,7 @@ int receive_doc_data(int c_read) {
         //(2.1) get permission
         fgets(buffer, sizeof(buffer), c_read_FILE); 
         
-        if (strcmp(buffer, "Reject UNAUTHORISED.\n") == 0) {
+        if (strcmp(buffer, "Reject UNAUTHORISED\n") == 0) {
             printf("%s", buffer);
             return 1;
         }
