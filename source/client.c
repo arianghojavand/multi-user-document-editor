@@ -27,7 +27,7 @@ void* receiver_func(void* args) {
     int c_file_int = *(int*)args;
     
     FILE* c_read_file = fdopen(c_file_int, "r");
-    FILE* log_client = fopen(client_log, "a");
+    FILE* log_client = fopen(client_log, "w");
 
     free(args);
 
