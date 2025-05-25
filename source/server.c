@@ -523,8 +523,6 @@ int main(int argc, char* argv[]) {
     }
 
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
-    pthread_cancel(update_version);
-    pthread_join(update_version, NULL);
 
     if (change_made) {
         markdown_increment_version(doc);
