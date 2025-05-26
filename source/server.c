@@ -26,7 +26,7 @@ volatile sig_atomic_t change_made = 0;
 pthread_mutex_t change_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t increment_cond = PTHREAD_COND_INITIALIZER;
 
-pthread_t* clientele = NULL;
+pthread_t* clients = NULL;
 size_t c_index = 0;
 size_t num_active = 0;
 size_t c_capacity = 1;
@@ -474,7 +474,7 @@ int main(int argc, char* argv[]) {
     //(2) create doc and set up array of threads
     doc = document_init();
     doc->version = 0;
-    clientele = calloc(10,sizeof(pthread_t));
+    clients = calloc(10,sizeof(pthread_t));
 
     // (3) set up async sig handling
     struct sigaction sa;
@@ -537,7 +537,7 @@ int main(int argc, char* argv[]) {
     pthread_mutex_unlock(&log_file_lock);
 
     for (size_t i = 0; i < c_index; i++) {
-        pthread_join(clientele[i], NULL);
+        pthread_join(clients[i], NULL);
     
     }
     
@@ -559,7 +559,7 @@ int main(int argc, char* argv[]) {
     free(log_messages);
     fclose(log_fp);
     document_free(doc);
-    free(clientele);
+    free(clients);
     return 0;
 }
 
@@ -574,17 +574,17 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
 
     //printf("Server: received signal from client.\n");
     while (2* c_index >= c_capacity) {
-        pthread_t* temp = realloc(clientele, 2 * (c_capacity) * sizeof(pthread_t));
+        pthread_t* temp = realloc(clients, 2 * (c_capacity) * sizeof(pthread_t));
         c_capacity *= 2;
 
         if (!temp) {
             perror("realloc failed");
             exit(1);
         }
-        clientele = temp;
+        clients = temp;
     } 
 
-    if (pthread_create(&clientele[c_index], NULL, client_thread, (void*)arg) == 0) {
+    if (pthread_create(&clients[c_index], NULL, client_thread, (void*)arg) == 0) {
         pthread_mutex_init(&client_write_locks[c_index], NULL);
         num_active++;
         c_index++;
