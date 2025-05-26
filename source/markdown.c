@@ -233,7 +233,7 @@ void markdown_increment_version(document *doc) {
             case CMD_LINK: 
                 adjust_range_for_deletions(current_command, deleted_range_list, dr_index);
                 if (current_command->start >= current_command->end) continue;
-                insert_link(doc, current_command->start - 2, current_command->end, current_command->content);
+                insert_link(doc, current_command->start, current_command->end, current_command->content);
                 break;
             
             default: //command not recognised
