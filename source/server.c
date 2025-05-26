@@ -507,14 +507,15 @@ int main(int argc, char* argv[]) {
     }
     pthread_mutex_unlock(&shutdown_lock);
     
-   
+   //====== ON SERRVER QUIT ====== 
     pthread_cancel(stdin_thread);
     pthread_join(stdin_thread, NULL);
-    
 
-   
+    pthread_cancel(update_version);  
+    pthread_join(update_version, NULL);
 
-    //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
+
+    //SAVE AND EXIT - LOG COMMANDS AND FINAL EDITS
 
     printf("Server quitting, change made, final increment\n");
     markdown_increment_version(doc);
@@ -585,7 +586,6 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
 
     if (pthread_create(&clientele[c_index], NULL, client_thread, (void*)arg) == 0) {
         pthread_mutex_init(&client_write_locks[c_index], NULL);
-        printf("Created a mutex for client num: %zu\n", c_index);
         num_active++;
         c_index++;
     } else {
