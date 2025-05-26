@@ -14,8 +14,6 @@
 
 #include "../libs/markdown.h"
 
-#define MAX_CLIENTS 64
-
 //doc variabels
 document* doc = NULL;
 pthread_mutex_t doc_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -36,11 +34,14 @@ size_t c_index = 0;
 size_t num_active = 0;
 size_t c_capacity = 1;
 
-int client_streams[MAX_CLIENTS];
+//client write file streams 
+int* client_streams = NULL;
 pthread_mutex_t client_streams_lock = PTHREAD_MUTEX_INITIALIZER;
 
-pthread_mutex_t client_write_locks[MAX_CLIENTS];
+//client pipe write mutices
+pthread_mutex_t* client_write_locks = NULL;
 
+//writing to log vars
 FILE* log_fp;
 pthread_mutex_t log_file_lock = PTHREAD_MUTEX_INITIALIZER;
 size_t last_line_read = 0;
@@ -392,11 +393,9 @@ void* client_thread(void* args) {
         close(client_streams[client_num]); 
         client_streams[client_num] = 0;
     }
-
     pthread_mutex_unlock(&client_streams_lock);
     num_active--;
 
-    pthread_mutex_destroy(&client_write_locks[client_num]);
     pthread_exit(NULL);
 }
 
@@ -476,6 +475,7 @@ void* update_version_func(void* args) {
         }
     }
 
+    free(args);
     return NULL;
 }
 
@@ -510,6 +510,8 @@ int main(int argc, char* argv[]) {
     doc = document_init();
     doc->version = 0;
     clients = calloc(10,sizeof(pthread_t));
+    client_streams = calloc(10, sizeof(int));
+    client_write_locks = calloc(10, sizeof(pthread_mutex_t));
 
     // (3) set up async sig handling
     struct sigaction sa;
@@ -533,7 +535,8 @@ int main(int argc, char* argv[]) {
 
     //create thread to update docs at time intervals
     pthread_t update_version;
-    int* time_arg = &time_interval;
+    int* time_arg = malloc(sizeof(int));
+    *time_arg = time_interval;  
     pthread_create(&update_version, NULL, update_version_func, (void*)time_arg);
 
     pthread_mutex_lock(&shutdown_lock);
@@ -543,8 +546,8 @@ int main(int argc, char* argv[]) {
     pthread_mutex_unlock(&shutdown_lock);
     
    //====== ON SERRVER QUIT ====== 
-    pthread_cancel(update_version);  
-    pthread_join(update_version, NULL);
+    // pthread_cancel(update_version);  
+    // pthread_join(update_version, NULL);
 
 
     //SAVE AND EXIT - LOG COMMANDS AND FINAL EDITS
@@ -592,6 +595,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    for (size_t i = 0; i < c_index; i++) {
+        pthread_mutex_destroy(&client_write_locks[i]);
+    }
+
     pthread_cancel(stdin_thread);
     pthread_join(stdin_thread, NULL);
 
@@ -599,6 +606,8 @@ int main(int argc, char* argv[]) {
     fclose(log_fp);
     document_free(doc);
     free(clients);
+    free(client_write_locks);
+    free(client_streams);
     return 0;
 }
 
@@ -612,7 +621,7 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
     *arg = cpid;
 
     //printf("Server: received signal from client.\n");
-    while (2* c_index >= c_capacity) {
+    while (2 * c_index >= c_capacity) {
         pthread_t* temp = realloc(clients, 2 * (c_capacity) * sizeof(pthread_t));
         c_capacity *= 2;
 
@@ -621,6 +630,24 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
             exit(1);
         }
         clients = temp;
+
+        pthread_mutex_t* temp_mutex = realloc(client_write_locks, 2 * (c_capacity) * sizeof(pthread_mutex_t));
+        if (!temp_mutex) {
+            perror("mutex client write locks failed");
+            exit(1);
+        }
+
+        client_write_locks = temp_mutex;
+
+        int* temp_streams = realloc(client_streams, 2 * (c_capacity) * sizeof(int));
+
+        if (!temp_streams) {
+            perror("client streams realloc failed");
+            exit(1);
+        }
+
+        
+        client_streams = temp_streams;
     } 
 
     if (pthread_create(&clients[c_index], NULL, client_thread, (void*)arg) == 0) {

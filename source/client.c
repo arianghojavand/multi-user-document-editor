@@ -13,6 +13,8 @@
 
 #include <pthread.h>
 
+#define COMMAND_MAX 256
+
 volatile sig_atomic_t client_shutdown = 0;
 
 char* client_log = NULL;
@@ -172,7 +174,7 @@ int main(int argc, char* argv[]) {
             pthread_create(&receiver, NULL, receiver_func, (void*) c_file);
 
             //char buffer[2048];
-            char command[256]; 
+            char command[COMMAND_MAX]; 
 
 
             while (fgets(command, sizeof(command), stdin)) {
