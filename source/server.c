@@ -369,7 +369,6 @@ void* client_thread(void* args) {
     
    
     if (client_streams[client_num] != NULL) {
-        fclose(client_streams[client_num]); 
         client_streams[client_num] = NULL;
     }
 
