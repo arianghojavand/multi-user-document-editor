@@ -543,9 +543,6 @@ int main(int argc, char* argv[]) {
     pthread_mutex_unlock(&shutdown_lock);
     
    //====== ON SERRVER QUIT ====== 
-    pthread_cancel(stdin_thread);
-    pthread_join(stdin_thread, NULL);
-
     pthread_cancel(update_version);  
     pthread_join(update_version, NULL);
 
@@ -594,6 +591,9 @@ int main(int argc, char* argv[]) {
             free(log_messages[i]);
         }
     }
+
+    pthread_cancel(stdin_thread);
+    pthread_join(stdin_thread, NULL);
 
     free(log_messages);
     fclose(log_fp);
