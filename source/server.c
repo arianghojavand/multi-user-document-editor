@@ -137,10 +137,10 @@ void* client_thread(void* args) {
 
         pthread_mutex_lock(&client_write_locks[client_num]);
         printf("Server: client %s authorised - sending document + metadata\n", username);
-       
-        fprintf(s_write_file, "perm: %s\n", permission); //perm
-        fprintf(s_write_file, "version: %lu\n", version); //version
-        fprintf(s_write_file, "length: %zu\n", doc_len);//length
+        printf("Server: perm = %s, version = %lu, length = %zu\n", permission, version, doc_len);
+        fprintf(s_write_file, "%s\n", permission); //perm
+        fprintf(s_write_file, "%lu\n", version); //version
+        fprintf(s_write_file, "%zu\n", doc_len);//length
         fwrite(doc_text, 1, doc_len, s_write_file); //document
         fflush(s_write_file); 
         free(doc_text);
