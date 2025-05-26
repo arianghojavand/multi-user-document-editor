@@ -134,21 +134,17 @@ void* client_thread(void* args) {
             length - doc_len
             document contents
         */
+
         pthread_mutex_lock(&client_write_locks[client_num]);
         printf("Server: client %s authorised - sending document + metadata\n", username);
-        printf("%s\n", permission);
-        fprintf(s_write_file, "%s\n", permission);
-
-        fprintf(s_write_file, "%lu\n", version);
-        printf("%lu\n", version);
-
-        fprintf(s_write_file, "%zu\n", doc_len);
-        printf("%zu\n", doc_len);
-
-        fwrite(doc_text, 1, doc_len, s_write_file);  
+       
+        fprintf(s_write_file, "perm: %s\n", permission); //perm
+        fprintf(s_write_file, "version: %lu\n", version); //version
+        fprintf(s_write_file, "length: %zu\n", doc_len);//length
+        fwrite(doc_text, 1, doc_len, s_write_file); //document
         fflush(s_write_file); 
         free(doc_text);
-        puts("Server: sent data to client");
+        
         pthread_mutex_unlock(&client_write_locks[client_num]);
 
         //(2) ======== start listening for client commands ========
@@ -208,7 +204,7 @@ void* client_thread(void* args) {
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
                     result = markdown_insert(doc, doc->version, pos, content);
-                    puts("inserted");
+                    //puts("inserted");
 
                 } else if (strcmp(token, "DEL") == 0) {
                     char* pos_str = strtok(NULL, " ");
@@ -217,14 +213,14 @@ void* client_thread(void* args) {
                     sscanf(pos_str, "%lu", &pos);
                     sscanf(len_str, "%lu", &len);
                     result = markdown_delete(doc, doc->version, pos, len);
-                    puts("deleted");
+                    //puts("deleted");
 
                 } else if (strcmp(token, "NEWLINE") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
                     result = markdown_newline(doc, doc->version, pos);
-                    puts("newline");
+                    //puts("newline");
 
                 } else if (strcmp(token, "HEADING") == 0) {
                     char* level_str = strtok(NULL, " ");
@@ -242,7 +238,7 @@ void* client_thread(void* args) {
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
                     result = markdown_bold(doc, doc->version, start, end);
-                    puts("bold");
+                    //puts("bold");
 
                 } else if (strcmp(token, "ITALIC") == 0) {
                     char* start_str = strtok(NULL, " ");
@@ -251,7 +247,7 @@ void* client_thread(void* args) {
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
                     result = markdown_italic(doc, doc->version, start, end);
-                    puts("italic");
+                    //puts("italic");
 
                 } else if (strcmp(token, "BLOCKQUOTE") == 0) {
                     char* pos_str = strtok(NULL, "");
@@ -288,7 +284,7 @@ void* client_thread(void* args) {
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
                     result = markdown_horizontal_rule(doc, doc->version, pos);
-                    puts("horizontal rule");
+                    //puts("horizontal rule");
 
                 } else if (strcmp(token, "LINK") == 0) {
                     char* start_str = strtok(NULL, " ");
@@ -298,7 +294,7 @@ void* client_thread(void* args) {
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
                     result = markdown_link(doc, doc->version, start, end, url);
-                    puts("link");
+                    //puts("link");
                 }
 
                 char* log_message = malloc(256);
@@ -525,9 +521,11 @@ int main(int argc, char* argv[]) {
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
 
     if (change_made) {
+        printf("Server quitting, change made, final increment\n");
         markdown_increment_version(doc);
     }
     
+    printf("printing final log\n");
     pthread_mutex_lock(&log_file_lock);
     char version_msg[64];
     snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
@@ -536,6 +534,7 @@ int main(int argc, char* argv[]) {
 
     while (prev_log_index < log_index) {
         fprintf(log_fp, "%s", log_messages[prev_log_index]);
+        printf("flushing log: %s\n", log_messages[prev_log_index]);
         broadcast_to_all_clients(log_messages[prev_log_index++]);
     }
 
@@ -543,10 +542,6 @@ int main(int argc, char* argv[]) {
     broadcast_to_all_clients("END\n");
     fflush(log_fp);
     pthread_mutex_unlock(&log_file_lock);
-
-    prev_log_index = log_index;
-
-
     
     FILE* out = fopen("doc.md", "w");
     if (!out) {
@@ -564,7 +559,6 @@ int main(int argc, char* argv[]) {
     }
 
     free(log_messages);
-
     fclose(log_fp);
     document_free(doc);
     free(clientele);
