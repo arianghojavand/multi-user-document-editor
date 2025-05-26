@@ -295,6 +295,8 @@ char* flatten(const document* doc) {
     while (current_chunk) {
         buffer[buffer_index++] = current_chunk->val;
         current_chunk = current_chunk->next;
+
+        if (buffer_index >= doc->size) break;
     }
 
     //null terminate at the end
