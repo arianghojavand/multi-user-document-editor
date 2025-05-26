@@ -128,19 +128,17 @@ void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_coun
     for (size_t i = 0; i < dr_count; i++) {
         DeletedRange* dr = drs[i];
 
-        //if start range is deleted snap to end deleted
+        if (cmd->start >= dr->start && cmd->end <= dr->end) {
+            cmd->start = cmd->end = dr->end;
+            return;
+        }
+        
         if (cmd->start >= dr->start && cmd->start < dr->end) {
             cmd->start = dr->end;
         }
 
-        //if end range is deleted snap to deleted range start
         if (cmd->end > dr->start && cmd->end <= dr->end) {
             cmd->end = dr->start;
-        }
-
-        //if command is fully deleted
-        if (cmd->start >= dr->start && cmd->end <= dr->end) {
-            cmd->start = cmd->end = dr->end;
         }
     }
 }
