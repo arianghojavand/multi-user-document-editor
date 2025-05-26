@@ -32,7 +32,7 @@ size_t c_index = 0;
 size_t num_active = 0;
 size_t c_capacity = 1;
 
-int client_streams[MAX_CLIENTS];
+FILE* client_streams[MAX_CLIENTS];
 pthread_mutex_t client_streams_lock = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t client_write_locks[MAX_CLIENTS];
@@ -106,8 +106,8 @@ void* client_thread(void* args) {
         FILE* s_write_file = fdopen(s_write_copy, "w");
 
         pthread_mutex_lock(&client_streams_lock);
-        client_streams[c_index - 1] = dup(s_write_copy);
         size_t client_num = c_index - 1;
+        client_streams[client_num] = s_write_file;
         pthread_mutex_unlock(&client_streams_lock);
         
 
@@ -368,9 +368,9 @@ void* client_thread(void* args) {
     pthread_mutex_lock(&client_streams_lock);
     
    
-    if (client_streams[client_num] != 0) {
-        close(client_streams[client_num]); 
-        client_streams[client_num] = 0;
+    if (client_streams[client_num] != NULL) {
+        fclose(client_streams[client_num]); 
+        client_streams[client_num] = NULL;
     }
 
     pthread_mutex_unlock(&client_streams_lock);
@@ -636,9 +636,9 @@ void broadcast_to_all_clients(const char* line) {
 
     for (size_t i = 0; i < c_index; i++) {
 
-        if (client_streams[i] == 0) continue;
+        if (client_streams[i] == NULL) continue;
 
-        FILE* stream = fdopen(client_streams[i], "w");
+        FILE* stream = client_streams[i];
 
         pthread_mutex_lock(&client_write_locks[i]);
         if (stream != NULL) {

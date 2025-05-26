@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (strcmp(command, "LOG?") == 0) {
-                    puts("LOG WAS CALLED CLIENT\n");
+                    puts("LOG WAS CALLED CLIENT");
                     char msg[50];
                     sprintf(msg, "cat %s", client_log);
                     system(msg);
