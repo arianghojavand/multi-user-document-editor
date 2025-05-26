@@ -128,24 +128,17 @@ void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_coun
     for (size_t i = 0; i < dr_count; i++) {
         DeletedRange* dr = drs[i];
 
-        // If the entire range is inside a deletion, wipe it out
         if (cmd->start >= dr->start && cmd->end <= dr->end) {
             cmd->start = cmd->end = dr->end;
             return;
         }
-
-        // Snap start to nearest if it's inside the deleted range
+        
         if (cmd->start >= dr->start && cmd->start < dr->end) {
-            size_t to_start = cmd->start - dr->start;
-            size_t to_end = dr->end - cmd->start;
-            cmd->start = (to_start < to_end) ? dr->start : dr->end;
+            cmd->start = dr->end;
         }
 
-        // Snap end to nearest if it's inside the deleted range
         if (cmd->end > dr->start && cmd->end <= dr->end) {
-            size_t to_start = cmd->end - dr->start;
-            size_t to_end = dr->end - cmd->end;
-            cmd->end = (to_start < to_end) ? dr->start : dr->end;
+            cmd->end = dr->start;
         }
     }
 }
@@ -273,4 +266,3 @@ void markdown_increment_version(document *doc) {
 
     
 }
-
