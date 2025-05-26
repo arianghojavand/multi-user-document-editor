@@ -640,6 +640,10 @@ void time_sort(document* doc) {
     for (size_t i = 0; i < doc->commands_index - 1; i++) {
         int swapped = 0;
         for (size_t j = 0; j < doc->commands_index - i - 1; j++) {
+
+            //skip if null
+            if (!doc->commands[j] || !doc->commands[j + 1]) continue;
+
             if (doc->commands[j]->timestamp > doc->commands[j + 1]->timestamp) {
                 swap_commands(&doc->commands[j], &doc->commands[j + 1]);
                 swapped = 1;
