@@ -532,14 +532,15 @@ int insert_link(document *doc, size_t start, size_t end, const char *url) {
     snprintf(suffix, size + 1, "](%s)", url);
 
     //(2) insert prefix and suffix
-    int insert_end = insert(doc, end, suffix);
     int insert_start = insert(doc, start, "[");
+    int insert_end = insert(doc, end + 1, suffix);
     free(suffix);
 
     if (insert_start == -1 || insert_end == -1) return -1;
 
     return SUCCESS;
 }
+
 
 // === Utilities ===
 void print_doc(const document *doc, FILE *stream) {
