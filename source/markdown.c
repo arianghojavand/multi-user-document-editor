@@ -115,22 +115,38 @@ char *markdown_flatten(const document *doc) {
      return flatten(doc);
 }
 
+
+void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_count) {
+    for (size_t i = 0; i < dr_count; i++) {
+        DeletedRange* dr = drs[i];
+
+        //if start range is deleted snap to end deleted
+        if (cmd->start >= dr->start && cmd->start < dr->end) {
+            cmd->start = dr->end;
+        }
+
+        //if end range is deleted snap to deleted range start
+        if (cmd->end > dr->start && cmd->end <= dr->end) {
+            cmd->end = dr->start;
+        }
+
+        //if command is fully deleted
+        if (cmd->start >= dr->start && cmd->end <= dr->end) {
+            cmd->start = cmd->end = dr->end;
+        }
+    }
+}
+
 // === Versioning ===
 void markdown_increment_version(document *doc) {
-
+    
    //(1) go iteratively through cmds (from head to tail)
-
-    typedef struct {
-        size_t start;
-        size_t end;
-    } DeletedRange;
 
     DeletedRange** deleted_range_list = calloc(50, sizeof(void*));
     size_t dr_index = 0;
 
     //sort it up by timestamp
     time_sort(doc);
-
     
     
     for (size_t i = 0; i < doc->commands_index; i++) {
@@ -179,10 +195,14 @@ void markdown_increment_version(document *doc) {
                 break;
 
             case CMD_BOLD:
+                adjust_range_for_deletions(current_command, deleted_range_list, dr_index);
+                if (current_command->start >= current_command->end) continue;
                 insert_bold(doc, current_command->start, current_command->end);
                 break;
             
-            case CMD_ITALIC:
+            case CMD_ITALIC: 
+                adjust_range_for_deletions(current_command, deleted_range_list, dr_index);
+                if (current_command->start >= current_command->end) continue;
                 insert_italic(doc, current_command->start, current_command->end);
                 break;
             
@@ -198,7 +218,9 @@ void markdown_increment_version(document *doc) {
                 insert_unordered_list(doc, current_command->pos);
                 break;
 
-            case CMD_CODE:
+            case CMD_CODE: 
+                adjust_range_for_deletions(current_command, deleted_range_list, dr_index);
+                if (current_command->start >= current_command->end) continue;
                 insert_code(doc, current_command->start, current_command->end);
                 break;
 
@@ -206,7 +228,9 @@ void markdown_increment_version(document *doc) {
                 insert_horizontal_rule(doc, current_command->pos);
                 break;
 
-            case CMD_LINK:
+            case CMD_LINK: 
+                adjust_range_for_deletions(current_command, deleted_range_list, dr_index);
+                if (current_command->start >= current_command->end) continue;
                 insert_link(doc, current_command->start, current_command->end, current_command->content);
                 break;
             
@@ -237,4 +261,7 @@ void markdown_increment_version(document *doc) {
     free(deleted_range_list);
     
     if (doc) doc->version++;
+
+    
 }
+

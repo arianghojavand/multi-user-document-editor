@@ -14,6 +14,11 @@
 
 // Return -1 if the cursor position is invalid
 
+typedef struct {
+        size_t start;
+        size_t end;
+    } DeletedRange;
+
 // Initialize and free a document
 document * markdown_init(void);
 void markdown_free(document *doc);
@@ -40,5 +45,9 @@ char *markdown_flatten(const document *doc);
 
 // === Versioning ===
 void markdown_increment_version(document *doc);
+
+
+//helpers
+void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_count);
 
 #endif // MARKDOWN_H

@@ -654,3 +654,4 @@ void time_sort(document* doc) {
         if (!swapped) break;
     }
 }
+
