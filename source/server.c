@@ -298,9 +298,19 @@ void* client_thread(void* args) {
                 }
 
                 char* log_message = malloc(256);
+                char* result_str = "SUCCESS";
+
+                if (result == -1) {
+                    result_str = "Reject INVALID_CURSOR_POS";
+                } else if (result == -2) {
+                    result_str = "Reject DELETED_POSITION";
+                } else if (result == -3) {
+                    result_str = "Reject OUTDATED_VERSION";
+                }
+
 
                 pthread_mutex_lock(&log_list_lock);
-                sprintf(log_message, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
+                sprintf(log_message, "EDIT %s %s %s\n", username, full_command, result_str);
                 log_messages[log_index++] = log_message;
                 //fprintf(log_fp, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
                 //last_line_read++;

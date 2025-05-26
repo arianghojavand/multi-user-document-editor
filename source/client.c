@@ -55,7 +55,7 @@ void* receiver_func(void* args) {
                 }
 
                 if (strncmp(line, "EDIT", 4) == 0) {
-                    printf("%s", line);
+                    printf("Log line: %s", line);
                     fprintf(log_client, "%s", line); 
                     fflush(log_client);
                 } else {
