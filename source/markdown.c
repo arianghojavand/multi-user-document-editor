@@ -115,6 +115,14 @@ char *markdown_flatten(const document *doc) {
      return flatten(doc);
 }
 
+size_t adjust_pos_for_deletions(size_t pos, DeletedRange** drs, size_t dr_count) {
+    for (size_t i = 0; i < dr_count; i++) {
+        if (pos >= drs[i]->start && pos < drs[i]->end) {
+            return drs[i]->start;
+        }
+    }
+    return pos;
+}
 
 void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_count) {
     for (size_t i = 0; i < dr_count; i++) {
@@ -157,17 +165,7 @@ void markdown_increment_version(document *doc) {
         switch (current_command->type) {
             case CMD_INSERT:
                 
-
-                for (size_t i = 0; i < dr_index; i++) {
-                    if (current_command->pos >= deleted_range_list[i]->start
-                        && current_command->pos < deleted_range_list[i]->end) {
-
-                            current_command->pos = deleted_range_list[i]->start;
-                            break;
-
-                    }
-                }
-
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert(doc, current_command->pos, current_command->content);
 
                 break;
@@ -187,10 +185,12 @@ void markdown_increment_version(document *doc) {
                 break;
             
             case CMD_NEWLINE:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_newline(doc, current_command->pos);
                 break;
 
             case CMD_HEADING:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_heading(doc, current_command->level, current_command->pos);
                 break;
 
@@ -207,14 +207,17 @@ void markdown_increment_version(document *doc) {
                 break;
             
             case CMD_QUOTE:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_blockquote(doc, current_command->pos);
                 break;
 
             case CMD_OLIST:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_ordered_list(doc, current_command->pos);
                 break;
 
             case CMD_ULIST:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_unordered_list(doc, current_command->pos);
                 break;
 
@@ -225,6 +228,7 @@ void markdown_increment_version(document *doc) {
                 break;
 
             case CMD_HRULE:
+                current_command->pos = adjust_pos_for_deletions(current_command->pos, deleted_range_list, dr_index);
                 insert_horizontal_rule(doc, current_command->pos);
                 break;
 

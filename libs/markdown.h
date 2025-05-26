@@ -49,5 +49,6 @@ void markdown_increment_version(document *doc);
 
 //helpers
 void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_count);
+size_t adjust_pos_for_deletions(size_t pos, DeletedRange** drs, size_t dr_count); 
 
 #endif // MARKDOWN_H
