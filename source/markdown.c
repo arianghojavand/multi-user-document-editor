@@ -135,6 +135,8 @@ void markdown_increment_version(document *doc) {
     
     for (size_t i = 0; i < doc->commands_index; i++) {
         Command* current_command = doc->commands[i];
+
+        if (!current_command) continue;
         
         switch (current_command->type) {
             case CMD_INSERT:
