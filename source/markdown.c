@@ -128,17 +128,24 @@ void adjust_range_for_deletions(Command* cmd, DeletedRange** drs, size_t dr_coun
     for (size_t i = 0; i < dr_count; i++) {
         DeletedRange* dr = drs[i];
 
+        //if entire range deleted fuck outta here
         if (cmd->start >= dr->start && cmd->end <= dr->end) {
             cmd->start = cmd->end = dr->end;
             return;
         }
-        
+
+        //is start is in deleted snap to closest
         if (cmd->start >= dr->start && cmd->start < dr->end) {
-            cmd->start = dr->end;
+            size_t dist_to_start = cmd->start - dr->start;
+            size_t dist_to_end = dr->end - cmd->start;
+            cmd->start = (dist_to_start <= dist_to_end) ? dr->start : dr->end;
         }
 
+        //if end is in deleted snap to closest
         if (cmd->end > dr->start && cmd->end <= dr->end) {
-            cmd->end = dr->start;
+            size_t dist_to_start = cmd->end - dr->start;
+            size_t dist_to_end = dr->end - cmd->end;
+            cmd->end = (dist_to_start <= dist_to_end) ? dr->start : dr->end;
         }
     }
 }
