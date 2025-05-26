@@ -48,7 +48,7 @@ void* receiver_func(void* args) {
 
             while (!client_shutdown && fgets(line, sizeof(line), c_read_file)) {
                 if (strncmp(line, "END", 3) == 0) {
-                    printf("End of update.\n");
+                    printf("End of broadcast.\n");
                     fprintf(log_client, "%s", line); 
                     fflush(log_client);
                     break;
@@ -98,8 +98,6 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    
-    
         //(2.2) get username + random num for client log file
     username = argv[2];
     printf("%d and %s\n", server_pid, username);
@@ -117,7 +115,7 @@ int main(int argc, char* argv[]) {
     sigset_t mask;
     setup_handler(&mask);
 
-    printf("client pid is: %d\n", getpid());
+    printf("Client pid is: %d\n", getpid());
 
     //(4) send SIGRTMIN to server from client
     if (kill(server_pid, SIGRTMIN) == -1) {
@@ -301,21 +299,18 @@ int receive_doc_data(int c_read) {
             printf("%s", buffer);
             return 1;
         }
-        printf("Server sent: %s", buffer);
         buffer[strcspn(buffer, "\n")] = '\0';
         perm = strdup(buffer);
 
         //(2.2) get version
         fgets(buffer, sizeof(buffer), c_read_FILE);
         sscanf(buffer, "%lu", &doc_version);
-        printf("Server sent: %s", buffer);
 
         //(2.3) get length of document
 
         fgets(buffer, sizeof(buffer), c_read_FILE);
         sscanf(buffer, "%zu", &doc_length);
         doc_contents = malloc(doc_length + 1);
-        printf("Server sent: %s", buffer);
 
         //(2.4) get document
         if (doc_length > 0) {

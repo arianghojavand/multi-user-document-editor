@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include "../libs/markdown.h"
 
@@ -517,12 +516,8 @@ int main(int argc, char* argv[]) {
 
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
 
-    if (change_made) {
-        printf("Server quitting, change made, final increment\n");
-        markdown_increment_version(doc);
-    }
-    
-    printf("printing final log\n");
+    printf("Server quitting, change made, final increment\n");
+    markdown_increment_version(doc);
     pthread_mutex_lock(&log_file_lock);
     char version_msg[64];
     snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
