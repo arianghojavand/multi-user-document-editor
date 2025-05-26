@@ -44,6 +44,7 @@ void document_free(document* doc) {
 
     for (size_t i = 0; i < doc->commands_index; i++) {
         if (doc->commands[i]) {
+            free(doc->commands[i]->content);
             free(doc->commands[i]);
         }
     }

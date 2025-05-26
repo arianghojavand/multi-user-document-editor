@@ -222,6 +222,7 @@ void markdown_increment_version(document *doc) {
         }
         
         free(temp);
+        doc->commands[i] = NULL;
 
     }
 
