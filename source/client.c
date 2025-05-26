@@ -21,17 +21,21 @@ char* doc_contents = NULL, *perm = NULL;
 size_t doc_length = 0;
 uint64_t doc_version = 0;
 
-int receive_doc_data(FILE* c_read_file);
+int receive_doc_data(int c_read);
 void setup_handler(sigset_t* mask);
 
 void* receiver_func(void* args) {
-    FILE* c_read_file = (FILE*)args;
+    int c_file_int = *(int*)args;
+    
+    FILE* c_read_file = fdopen(c_file_int, "r");
     FILE* log_client = fopen(client_log, "w");
+
+    free(args);
 
     char line[2048];
 
-    while (fgets(line, sizeof(line), c_read_file)) {
-        if (client_shutdown) break;
+    while (!client_shutdown && fgets(line, sizeof(line), c_read_file)) {
+        //printf("Server said %s", line);
         
         if (strncmp(line, "ACK", 3) == 0) {
             printf("Server ACK: %s", line);
@@ -147,8 +151,8 @@ int main(int argc, char* argv[]) {
         }
 
         //WRAP INTO FILE STREAM
-        int c_read_copy = c_read;
-        int c_write_copy = c_write;
+        int c_read_copy = dup(c_read);
+        int c_write_copy = dup(c_write);
 
         FILE* c_read_file = fdopen(c_read_copy, "r");
         FILE* c_write_file = fdopen(c_write_copy, "w");
@@ -159,18 +163,21 @@ int main(int argc, char* argv[]) {
 
         //receive back initial doc contents from server
 
-        if (receive_doc_data(c_read_file) == 0) {
+        if (receive_doc_data(c_read) == 0) {
 
             puts("Client: received server data");
 
+            int* c_file = malloc(sizeof(int));
+            *c_file = c_read_copy;
+
             pthread_t receiver;
-            pthread_create(&receiver, NULL, receiver_func, (void*) c_read_file);
+            pthread_create(&receiver, NULL, receiver_func, (void*) c_file);
 
+            //char buffer[2048];
             char command[256]; 
+
+
             while (fgets(command, sizeof(command), stdin)) {
-
-                if (client_shutdown) break;
-
                 command[strcspn(command, "\n")] = '\0';
 
                 
@@ -191,7 +198,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (strcmp(command, "LOG?") == 0) {
-                    puts("LOG WAS CALLED CLIENT");
+                    puts("LOG WAS CALLED CLIENT\n");
                     char msg[50];
                     sprintf(msg, "cat %s", client_log);
                     system(msg);
@@ -202,6 +209,7 @@ int main(int argc, char* argv[]) {
                 //==== CAT B - COMMANDS TO SERVER ====
 
                  //write to server
+                
                 fwrite(command, 1, strlen(command), c_write_file);
                 fwrite("\n", 1, 1, c_write_file);
                 fflush(c_write_file);
@@ -209,29 +217,33 @@ int main(int argc, char* argv[]) {
                 //exit "gracefully" if disconnect command is given
                 if (strcmp(command, "DISCONNECT") == 0) {
                     printf("Client: disconnecting from server.\n");
+                    //write(c_write, command, strlen(command) + 1);
+                    //fclose(c_write_file);
                     client_shutdown = 1;
-                    // fclose(c_write_file);
                     // fclose(c_read_file);
+                    //pthread_cancel(receiver);
+                    pthread_join(receiver, NULL);
                     
-                    // free(doc_contents);
-                    // free(perm);
-                    exit(0);
-                    break; 
+                    exit(0); 
                     
                 }
 
-            }
+               
 
+                //read from server
+                //fgets(buffer, sizeof(buffer), c_read_file);
+                //printf("Server: %s", buffer);
+            }
             
-            
+            client_shutdown = 1;
+            pthread_join(receiver, NULL);
             free(doc_contents);
             free(perm);
 
-        } 
-        
+        }
+
         fclose(c_write_file);
         fclose(c_read_file);
-
 
 
     } else {
@@ -257,7 +269,7 @@ void setup_handler(sigset_t* mask) {
 }
 
 //0 for succes, 1 for unauthorised, -1 for error
-int receive_doc_data(FILE* c_read_file) {
+int receive_doc_data(int c_read) {
     //client authorised 
 
     /* receiving... 
@@ -276,11 +288,14 @@ int receive_doc_data(FILE* c_read_file) {
     
     //(1) wrap read file descriptor into FILE stream 
 
+    int c_read_copy = dup(c_read);
+    FILE* c_read_FILE = fdopen(c_read_copy, "r");
+
     //(2) store initial data into buffer
     char buffer[50];
     
         //(2.1) get permission
-        fgets(buffer, sizeof(buffer), c_read_file); 
+        fgets(buffer, sizeof(buffer), c_read_FILE); 
         
         if (strcmp(buffer, "Reject UNAUTHORISED\n") == 0) {
             printf("%s", buffer);
@@ -291,20 +306,20 @@ int receive_doc_data(FILE* c_read_file) {
         perm = strdup(buffer);
 
         //(2.2) get version
-        fgets(buffer, sizeof(buffer), c_read_file);
+        fgets(buffer, sizeof(buffer), c_read_FILE);
         sscanf(buffer, "%lu", &doc_version);
         printf("Server sent: %s", buffer);
 
         //(2.3) get length of document
 
-        fgets(buffer, sizeof(buffer), c_read_file);
+        fgets(buffer, sizeof(buffer), c_read_FILE);
         sscanf(buffer, "%zu", &doc_length);
         doc_contents = malloc(doc_length + 1);
         printf("Server sent: %s", buffer);
 
         //(2.4) get document
         if (doc_length > 0) {
-            fread(doc_contents, 1, doc_length, c_read_file);
+            fread(doc_contents, 1, doc_length, c_read_FILE);
         }
         
         doc_contents[doc_length] = '\0';

@@ -27,12 +27,12 @@ volatile sig_atomic_t change_made = 0;
 pthread_mutex_t change_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t increment_cond = PTHREAD_COND_INITIALIZER;
 
-pthread_t* clients = NULL;
+pthread_t* clientele = NULL;
 size_t c_index = 0;
 size_t num_active = 0;
 size_t c_capacity = 1;
 
-FILE* client_streams[MAX_CLIENTS];
+int client_streams[MAX_CLIENTS];
 pthread_mutex_t client_streams_lock = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t client_write_locks[MAX_CLIENTS];
@@ -106,8 +106,8 @@ void* client_thread(void* args) {
         FILE* s_write_file = fdopen(s_write_copy, "w");
 
         pthread_mutex_lock(&client_streams_lock);
+        client_streams[c_index - 1] = dup(s_write_copy);
         size_t client_num = c_index - 1;
-        client_streams[client_num] = s_write_file;
         pthread_mutex_unlock(&client_streams_lock);
         
 
@@ -298,19 +298,9 @@ void* client_thread(void* args) {
                 }
 
                 char* log_message = malloc(256);
-                char* result_str = "SUCCESS";
-
-                if (result == -1) {
-                    result_str = "Reject INVALID_CURSOR_POS";
-                } else if (result == -2) {
-                    result_str = "Reject DELETED_POSITION";
-                } else if (result == -3) {
-                    result_str = "Reject OUTDATED_VERSION";
-                }
-
 
                 pthread_mutex_lock(&log_list_lock);
-                sprintf(log_message, "EDIT %s %s %s\n", username, full_command, result_str);
+                sprintf(log_message, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
                 log_messages[log_index++] = log_message;
                 //fprintf(log_fp, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
                 //last_line_read++;
@@ -351,6 +341,9 @@ void* client_thread(void* args) {
         sleep(1);
         
     }
+    
+    close(s_write);
+    close(s_read);
 
     fclose(s_write_file);
     fclose(s_read_file);
@@ -365,8 +358,9 @@ void* client_thread(void* args) {
     pthread_mutex_lock(&client_streams_lock);
     
    
-    if (client_streams[client_num] != NULL) {
-        client_streams[client_num] = NULL;
+    if (client_streams[client_num] != 0) {
+        close(client_streams[client_num]); 
+        client_streams[client_num] = 0;
     }
 
     pthread_mutex_unlock(&client_streams_lock);
@@ -481,7 +475,7 @@ int main(int argc, char* argv[]) {
     //(2) create doc and set up array of threads
     doc = document_init();
     doc->version = 0;
-    clients = calloc(10,sizeof(pthread_t));
+    clientele = calloc(10,sizeof(pthread_t));
 
     // (3) set up async sig handling
     struct sigaction sa;
@@ -547,7 +541,7 @@ int main(int argc, char* argv[]) {
     pthread_mutex_unlock(&log_file_lock);
 
     for (size_t i = 0; i < c_index; i++) {
-        pthread_join(clients[i], NULL);
+        pthread_join(clientele[i], NULL);
     
     }
     
@@ -569,7 +563,7 @@ int main(int argc, char* argv[]) {
     free(log_messages);
     fclose(log_fp);
     document_free(doc);
-    free(clients);
+    free(clientele);
     return 0;
 }
 
@@ -584,17 +578,17 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
 
     //printf("Server: received signal from client.\n");
     while (2* c_index >= c_capacity) {
-        pthread_t* temp = realloc(clients, 2 * (c_capacity) * sizeof(pthread_t));
+        pthread_t* temp = realloc(clientele, 2 * (c_capacity) * sizeof(pthread_t));
         c_capacity *= 2;
 
         if (!temp) {
             perror("realloc failed");
             exit(1);
         }
-        clients = temp;
+        clientele = temp;
     } 
 
-    if (pthread_create(&clients[c_index], NULL, client_thread, (void*)arg) == 0) {
+    if (pthread_create(&clientele[c_index], NULL, client_thread, (void*)arg) == 0) {
         pthread_mutex_init(&client_write_locks[c_index], NULL);
         printf("Created a mutex for client num: %zu\n", c_index);
         num_active++;
@@ -632,9 +626,9 @@ void broadcast_to_all_clients(const char* line) {
 
     for (size_t i = 0; i < c_index; i++) {
 
-        if (client_streams[i] == NULL) continue;
+        if (client_streams[i] == 0) continue;
 
-        FILE* stream = client_streams[i];
+        FILE* stream = fdopen(client_streams[i], "w");
 
         pthread_mutex_lock(&client_write_locks[i]);
         if (stream != NULL) {
