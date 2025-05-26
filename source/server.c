@@ -351,9 +351,6 @@ void* client_thread(void* args) {
         sleep(1);
         
     }
-    
-    close(s_write);
-    close(s_read);
 
     fclose(s_write_file);
     fclose(s_read_file);
