@@ -16,16 +16,21 @@
 
 #define MAX_CLIENTS 64
 
-
+//doc variabels
 document* doc = NULL;
+pthread_mutex_t doc_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//shutdown variables -> to shutdown server
 volatile sig_atomic_t server_shutdown = 0;
 pthread_mutex_t shutdown_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t shutdown_cond = PTHREAD_COND_INITIALIZER;
 
+//changes made variables -> to know whether to inc ver or not
 volatile sig_atomic_t change_made = 0;
 pthread_mutex_t change_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t increment_cond = PTHREAD_COND_INITIALIZER;
 
+//client variables
 pthread_t* clients = NULL;
 size_t c_index = 0;
 size_t num_active = 0;
@@ -98,8 +103,8 @@ void* client_thread(void* args) {
 
         //(3.3) wrap both in high level FILE I/O stream
 
-        int s_read_copy = dup(s_read);
-        int s_write_copy = dup(s_write);
+        int s_read_copy = s_read;
+        int s_write_copy = s_write;
 
         FILE* s_read_file = fdopen(s_read_copy, "r");
         FILE* s_write_file = fdopen(s_write_copy, "w");
@@ -123,9 +128,11 @@ void* client_thread(void* args) {
     if(find_user_perm(username, permission) == 0) {
 
         //(1) ======== send over document details ========
+        pthread_mutex_lock(&doc_mutex);
         char* doc_text = flatten(doc);
         size_t doc_len = strlen(doc_text);
         uint64_t version = doc->version;
+        pthread_mutex_unlock(&doc_mutex);
         
         /* sending... 
             role - read/write
@@ -202,7 +209,9 @@ void* client_thread(void* args) {
                     char* content = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_insert(doc, doc->version, pos, content);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("inserted");
 
                 } else if (strcmp(token, "DEL") == 0) {
@@ -211,14 +220,18 @@ void* client_thread(void* args) {
                     size_t pos, len;
                     sscanf(pos_str, "%lu", &pos);
                     sscanf(len_str, "%lu", &len);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_delete(doc, doc->version, pos, len);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("deleted");
 
                 } else if (strcmp(token, "NEWLINE") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_newline(doc, doc->version, pos);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("newline");
 
                 } else if (strcmp(token, "HEADING") == 0) {
@@ -227,8 +240,10 @@ void* client_thread(void* args) {
                     size_t level, pos;
                     sscanf(level_str, "%lu", &level);
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_heading(doc, doc->version, level, pos);
-                    puts("heading");
+                    pthread_mutex_unlock(&doc_mutex);
+                    //puts("heading");
 
                 } else if (strcmp(token, "BOLD") == 0) {
                     char* start_str = strtok(NULL, " ");
@@ -236,7 +251,9 @@ void* client_thread(void* args) {
                     size_t start, end;
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_bold(doc, doc->version, start, end);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("bold");
 
                 } else if (strcmp(token, "ITALIC") == 0) {
@@ -245,28 +262,36 @@ void* client_thread(void* args) {
                     size_t start, end;
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_italic(doc, doc->version, start, end);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("italic");
 
                 } else if (strcmp(token, "BLOCKQUOTE") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_blockquote(doc, doc->version, pos);
+                    pthread_mutex_unlock(&doc_mutex);
                     puts("blockquote");
 
                 } else if (strcmp(token, "ORDERED_LIST") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_ordered_list(doc, doc->version, pos);
+                    pthread_mutex_unlock(&doc_mutex);
                     puts("ordered list");
 
                 } else if (strcmp(token, "UNORDERED_LIST") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_unordered_list(doc, doc->version, pos);
+                    pthread_mutex_unlock(&doc_mutex);
                     puts("unordered list");
 
                 } else if (strcmp(token, "CODE") == 0) {
@@ -275,14 +300,18 @@ void* client_thread(void* args) {
                     size_t start, end;
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_code(doc, doc->version, start, end);
+                    pthread_mutex_unlock(&doc_mutex);
                     puts("code");
 
                 } else if (strcmp(token, "HORIZONTAL_RULE") == 0) {
                     char* pos_str = strtok(NULL, "");
                     size_t pos;
                     sscanf(pos_str, "%lu", &pos);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_horizontal_rule(doc, doc->version, pos);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("horizontal rule");
 
                 } else if (strcmp(token, "LINK") == 0) {
@@ -292,7 +321,9 @@ void* client_thread(void* args) {
                     size_t start, end;
                     sscanf(start_str, "%lu", &start);
                     sscanf(end_str, "%lu", &end);
+                    pthread_mutex_lock(&doc_mutex);
                     result = markdown_link(doc, doc->version, start, end, url);
+                    pthread_mutex_unlock(&doc_mutex);
                     //puts("link");
                 }
 
@@ -341,8 +372,8 @@ void* client_thread(void* args) {
         
     }
     
-    close(s_write);
-    close(s_read);
+    // close(s_write);
+    // close(s_read);
 
     fclose(s_write_file);
     fclose(s_read_file);
@@ -396,7 +427,9 @@ void* stdin_responder(void* args) {
             continue;
             
         } else if (strcmp(buffer, "DOC?\n") == 0) {
+            pthread_mutex_lock(&doc_mutex);
             if (doc) markdown_print(doc, stdout);
+            pthread_mutex_unlock(&doc_mutex);
             continue;
             
         }
@@ -415,7 +448,9 @@ void* update_version_func(void* args) {
         sleep(time_interval);
 
         if (change_made) {
+            pthread_mutex_lock(&doc_mutex);
             markdown_increment_version(doc);
+            pthread_mutex_unlock(&doc_mutex);
 
             pthread_mutex_lock(&log_file_lock);
 
@@ -518,7 +553,9 @@ int main(int argc, char* argv[]) {
     //SAVE AND EXIT - LOG COMMANDS AND FINAL EDITS
 
     printf("Server quitting, change made, final increment\n");
+    pthread_mutex_lock(&doc_mutex);
     markdown_increment_version(doc);
+    pthread_mutex_unlock(&doc_mutex);
     pthread_mutex_lock(&log_file_lock);
     char version_msg[64];
     snprintf(version_msg, sizeof(version_msg), "VERSION %lu\n", doc->version);
@@ -545,7 +582,9 @@ int main(int argc, char* argv[]) {
     if (!out) {
         perror("Failed to open doc.md for writing");
     } else {
+        pthread_mutex_lock(&doc_mutex);
         markdown_print(doc, out);
+        pthread_mutex_unlock(&doc_mutex);
         fclose(out);
         printf("Document saved to doc.md\n");
     }
