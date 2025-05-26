@@ -522,22 +522,25 @@ int insert_horizontal_rule(document *doc, size_t pos) {
 
 int insert_link(document *doc, size_t start, size_t end, const char *url) {
     if (doc == NULL || url == NULL) return -1;
-    
     if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
 
+    size_t url_len = strlen(url);
+    char *suffix = malloc(url_len + 4 + 1);  // +4 for "]()", +1 for null terminator
+    snprintf(suffix, url_len + 5, "](%s)", url);
 
-    //(1) create suffix
-    size_t size = strlen(url) + 4; //[]()
-    char *suffix = malloc(size + 1); //+1 for \0
-    snprintf(suffix, size + 1, "](%s)", url);
+    //insert `[` at `start`
+    if (insert(doc, start, "[") == -1) {
+        free(suffix);
+        return -1;
+    }
 
-    //(2) insert prefix and suffix
-    int insert_start = insert(doc, start, "[");
-    int insert_end = insert(doc, end + 1, suffix);
+    //after inserting at `start`, the `end` shifts by 1
+    if (insert(doc, end + 1, suffix) == -1) {
+        free(suffix);
+        return -1;
+    }
+
     free(suffix);
-
-    if (insert_start == -1 || insert_end == -1) return -1;
-
     return SUCCESS;
 }
 
