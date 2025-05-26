@@ -525,7 +525,7 @@ int insert_link(document *doc, size_t start, size_t end, const char *url) {
     if (start >= end || end > doc->size) return INVALID_CURSOR_POS;
 
     size_t url_len = strlen(url);
-    char *suffix = malloc(url_len + 4 + 1);  // +4 for "]()", +1 for null terminator
+    char *suffix = malloc(url_len + 4 + 1);  // +4 for "]()", +1 for '\0'
     snprintf(suffix, url_len + 5, "](%s)", url);
 
     //insert `[` at `start`
@@ -534,8 +534,11 @@ int insert_link(document *doc, size_t start, size_t end, const char *url) {
         return -1;
     }
 
-    //after inserting at `start`, the `end` shifts by 1
-    if (insert(doc, end + 1, suffix) == -1) {
+    //since we inserted one char, end shifts +1
+    end++;
+
+    //insert `](url)` at new end
+    if (insert(doc, end, suffix) == -1) {
         free(suffix);
         return -1;
     }
