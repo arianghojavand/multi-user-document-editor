@@ -128,9 +128,13 @@ void markdown_increment_version(document *doc) {
     DeletedRange** deleted_range_list = calloc(50, sizeof(void*));
     size_t dr_index = 0;
 
-    Command* current_command = doc->command_head;
+    //sort it up by timestamp
+    time_sort(doc);
+
     
-    while (current_command) {
+    
+    for (size_t i = 0; i < doc->commands_index; i++) {
+        Command* current_command = doc->commands[i];
         
         switch (current_command->type) {
             case CMD_INSERT:
@@ -212,7 +216,6 @@ void markdown_increment_version(document *doc) {
 
 
         Command* temp = current_command;
-        current_command = current_command->next;
 
         if (temp->content) {
             free(temp->content);
@@ -220,10 +223,7 @@ void markdown_increment_version(document *doc) {
         
         free(temp);
 
-
-
     }
-    doc->command_head = doc->command_tail = NULL;
 
     for (size_t i = 0; i < dr_index; i++) {
         if (!deleted_range_list[i]) continue;

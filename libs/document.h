@@ -1,15 +1,14 @@
-#ifndef DOCUMENT_H
-
-#define DOCUMENT_H
 /**
  * This file is the header file for all the document functions. You will be tested on the functions inside markdown.h
  * You are allowed to and encouraged multiple helper functions and data structures, and make your code as modular as possible. 
  * Ensure you DO NOT change the name of document struct.
  */
 
+#pragma once
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <time.h>
 
 typedef enum {
     CMD_INSERT,
@@ -38,7 +37,8 @@ typedef struct command {
     size_t start;
     size_t end;
 
-    struct command* next;
+    uint64_t timestamp;
+
 } Command;
 
 typedef struct chunk{
@@ -57,9 +57,9 @@ typedef struct document {
     size_t size;
     uint64_t version;
 
-    //command queue data structure
-    Command* command_head;
-    Command* command_tail;
+    Command** commands;  
+    size_t commands_index;
+    size_t commands_capacity;
 
 } document;
 
@@ -88,9 +88,11 @@ int insert_horizontal_rule(document *doc, size_t pos);
 int insert_link(document *doc, size_t start, size_t end, const char *url);
 
 
-//helpers
+//other/helpers
+void swap_commands(Command** cmd_x, Command** cmd_y);
+void time_sort(document* doc);
 int find_position(const document* doc, size_t pos, chunk** prev_char, chunk** next_char);
+
 int build_chain(const char* content, chunk** head, chunk** tail);
 int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level);
-
-#endif
+Command** add_command(document* doc, Command* cmd); //if NULL is passed into first param then we create a new list

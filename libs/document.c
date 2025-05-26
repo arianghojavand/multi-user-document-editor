@@ -23,8 +23,9 @@ document* document_init(void) {
     doc->size = 0;
     doc->version = 0;
 
-    doc->command_head = NULL;
-    doc->command_tail = NULL;
+    doc->commands = malloc(10 * sizeof(void*));
+    doc->commands_index = 0;
+    doc->commands_capacity = 10;
 
     return doc;
 }
@@ -41,12 +42,13 @@ void document_free(document* doc) {
         current = next;
     }
 
-    while (doc->command_head) {
-        Command* temp = doc->command_head->next;
-        free(doc->command_head);
-        doc->command_head = temp;
+    for (size_t i = 0; i < doc->commands_index; i++) {
+        if (doc->commands[i]) {
+            free(doc->commands[i]);
+        }
     }
 
+    free(doc->commands);
     free(doc);
 }
 
@@ -548,42 +550,100 @@ void print_doc(const document *doc, FILE *stream) {
     }
 }
 
-int enqueue_command(document* doc, CommandType TYPE, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level) {
+
+Command** add_command(document* doc, Command* cmd) {
+    if (!doc->commands) {
+        doc->commands = malloc(10 * sizeof(Command*));
+        if (!doc->commands) {
+            fprintf(stderr, "error in command doc->commands alloc");
+            exit(1);
+        }
+
+        doc->commands_index = 0;
+        doc->commands_capacity = 10;
+    }
+
+    if (doc->commands_index >= doc->commands_capacity) {
+        Command** temp = realloc(doc->commands, sizeof(Command*) * doc->commands_capacity * 2);
+        if (!temp) {
+            fprintf(stderr, "error in command doc->commands realloc.\n");
+            exit(1);
+        }
+
+        doc->commands = temp;
+        doc->commands_capacity *= 2;
+    }
+
+    doc->commands[doc->commands_index++] = cmd;
+    return doc->commands;
+}
+
+int enqueue_command(document* doc, CommandType cmd_type, size_t pos, size_t len, const char* content, size_t start, size_t end, size_t level) {
     Command* cmd = malloc(sizeof(Command));
-    
-    
+    if (!cmd) {
+        fprintf(stderr, "error in command alloc");
+        exit(1);
+    }
 
+    
+    /* fill this out
+    CommandType type;
+    size_t pos;
+    size_t len;
+    char* content;
 
-    //fill out struct
-    cmd->type = TYPE;
+    size_t level;
+    size_t start;
+    size_t end;
+
+    uint64_t timestamp;
+   
+    */
+    
+    cmd->type = cmd_type;
     cmd->pos = pos;
     cmd->len = len;
-   
 
     if (content) {
         cmd->content = strdup(content);
     } else {
         cmd->content = NULL;
     }
-    cmd->next = NULL;
-    
+
+    cmd->level = level;
     cmd->start = start;
     cmd->end = end;
-    cmd->level = level;
 
-    //update command queue in main
-    
-   
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    cmd->timestamp = (uint64_t)(ts.tv_sec * 1000000000L + ts.tv_nsec);
 
-    if (!doc->command_head) {
-        doc->command_head = cmd;
-        doc->command_tail = cmd;
-    } else {
-        doc->command_tail->next = cmd;
-        doc->command_tail = cmd;
-    }
+
+    //add to queue
+    add_command(doc, cmd);
     
     return SUCCESS;
 
-    
+
+}
+
+void swap_commands(Command** cmd_x, Command** cmd_y) {
+    Command* temp = *cmd_x;
+    *cmd_x = *cmd_y;
+    *cmd_y = temp;
+}
+
+void time_sort(document* doc) {
+    if (!doc || !doc->commands || doc->commands_index < 2) return;
+
+    for (size_t i = 0; i < doc->commands_index - 1; i++) {
+        int swapped = 0;
+        for (size_t j = 0; j < doc->commands_index - i - 1; j++) {
+            if (doc->commands[j]->timestamp > doc->commands[j + 1]->timestamp) {
+                swap_commands(&doc->commands[j], &doc->commands[j + 1]);
+                swapped = 1;
+            }
+        }
+        if (!swapped) break;
+    }
 }

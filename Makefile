@@ -12,12 +12,9 @@ markdown.o: $(SRC_DIR)/markdown.c $(LIB_DIR)/document.c
 	ld -r markdown_part.o document_part.o -o markdown.o
 	rm -f markdown_part.o document_part.o
 
-server: $(SRC_DIR)/server.c markdown.o $(LIB_DIR)/server_commands.c
-	$(CC) $(CFLAGS) -c $< -o server_part.o 
-	$(CC) $(CFLAGS) -c $(LIB_DIR)/server_commands.c -o server_commands_part.o
-	ld -r markdown.o server_part.o server_commands_part.o -o server.o
-	$(CC) $(CFLAGS) server.o -o server
-	rm -f server_part.o server_commands_part.o 
+server: $(SRC_DIR)/server.c markdown.o 
+	$(CC) $(CFLAGS) -c $< -o server.o 
+	$(CC) $(CFLAGS) server.o markdown.o -o server
 
 
 # === Rule: client binary ===
