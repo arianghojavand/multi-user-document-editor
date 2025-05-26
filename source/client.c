@@ -228,11 +228,6 @@ int main(int argc, char* argv[]) {
                     
                 }
 
-               
-
-                //read from server
-                //fgets(buffer, sizeof(buffer), c_read_file);
-                //printf("Server: %s", buffer);
             }
             
             client_shutdown = 1;

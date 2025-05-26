@@ -165,9 +165,6 @@ void* client_thread(void* args) {
             printf("Client %s command: %s\n", username, c_command);
 
             if (strcmp(c_command, "DISCONNECT") == 0) {
-                // puts("User attempting to disconnect");
-                // fwrite("\0", 1, 1, s_write_file);
-                // fflush(s_write_file); 
                 break;
             }
 
@@ -191,8 +188,7 @@ void* client_thread(void* args) {
                     pthread_mutex_lock(&log_list_lock);
                     sprintf(log_message, "EDIT %s %s %s\n", username, full_command, "Reject UNAUTHORISED");
                     log_messages[log_index++] = log_message;
-                    //fprintf(log_fp, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
-                    //last_line_read++;
+
 
                     while (log_index >= log_capacity) {
                         char** temp = realloc(log_messages, sizeof(void*)* log_capacity * 2);
@@ -313,7 +309,6 @@ void* client_thread(void* args) {
                     pthread_mutex_lock(&doc_mutex);
                     result = markdown_horizontal_rule(doc, doc->version, pos);
                     pthread_mutex_unlock(&doc_mutex);
-                    //puts("horizontal rule");
 
                 } else if (strcmp(token, "LINK") == 0) {
                     char* start_str = strtok(NULL, " ");
@@ -325,7 +320,6 @@ void* client_thread(void* args) {
                     pthread_mutex_lock(&doc_mutex);
                     result = markdown_link(doc, doc->version, start, end, url);
                     pthread_mutex_unlock(&doc_mutex);
-                    //puts("link");
                 }
 
                 char* log_message = malloc(256);
@@ -333,8 +327,7 @@ void* client_thread(void* args) {
                 pthread_mutex_lock(&log_list_lock);
                 sprintf(log_message, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
                 log_messages[log_index++] = log_message;
-                //fprintf(log_fp, "EDIT %s %s %s\n", username, full_command, result == 0 ? "SUCCESS" : "Reject");
-                //last_line_read++;
+        
 
                 while (log_index >= log_capacity) {
                     char** temp = realloc(log_messages, sizeof(void*)* log_capacity * 2);
@@ -343,14 +336,7 @@ void* client_thread(void* args) {
                 }
 
                 pthread_mutex_unlock(&log_list_lock);
-
-                // pthread_mutex_lock(&log_file_lock);
-                // fprintf(log_fp, "%s", log_message);
-                // fflush(log_fp);
-                // pthread_mutex_unlock(&log_file_lock);
-
                 
-
                 pthread_mutex_lock(&change_mutex);
                 change_made = 1;
                 pthread_mutex_unlock(&change_mutex);
@@ -373,8 +359,6 @@ void* client_thread(void* args) {
         
     }
     
-    // close(s_write);
-    // close(s_read);
 
     fclose(s_write_file);
     fclose(s_read_file);
@@ -617,10 +601,10 @@ void sig_handler(int signal, siginfo_t* client_info, void* context) {
     int* arg = malloc(sizeof(int));
     pid_t cpid = client_info->si_pid;
 
-    //printf("from server: client pid is %d\n", cpid);
+    //printf("debug: from server: client pid is %d\n", cpid);
     *arg = cpid;
 
-    //printf("Server: received signal from client.\n");
+    //printf("debug: Server: received signal from client.\n");
     while (2 * c_index >= c_capacity) {
         pthread_t* temp = realloc(clients, 2 * (c_capacity) * sizeof(pthread_t));
         c_capacity *= 2;
