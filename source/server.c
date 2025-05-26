@@ -513,10 +513,7 @@ int main(int argc, char* argv[]) {
     pthread_join(stdin_thread, NULL);
     
 
-    for (size_t i = 0; i < c_index; i++) {
-        pthread_join(clientele[i], NULL);
-    
-    }
+   
 
     //SAVE AND EXIT DONT FORGET TO LOG COMMANDS
 
@@ -542,6 +539,11 @@ int main(int argc, char* argv[]) {
     broadcast_to_all_clients("END\n");
     fflush(log_fp);
     pthread_mutex_unlock(&log_file_lock);
+
+    for (size_t i = 0; i < c_index; i++) {
+        pthread_join(clientele[i], NULL);
+    
+    }
     
     FILE* out = fopen("doc.md", "w");
     if (!out) {
